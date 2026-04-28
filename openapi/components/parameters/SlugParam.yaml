@@ -1,0 +1,12 @@
+name: slug
+in: path
+required: true
+description: |
+  Tenant-unique kebab-case identifier. Used by storefront/marketing
+  surfaces that prefer slugs over numeric IDs.
+schema:
+  type: string
+  minLength: 1
+  maxLength: 100
+  pattern: ^[a-z0-9][a-z0-9-]{0,98}[a-z0-9]$
+example: renault-clio-2024

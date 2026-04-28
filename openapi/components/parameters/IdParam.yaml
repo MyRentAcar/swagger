@@ -1,0 +1,11 @@
+name: id
+in: path
+required: true
+description: |
+  Resource primary key (BIGINT, tenant-scoped). Cross-tenant ids return
+  `404` to prevent enumeration (see `docs/08-api-security.md` §9.3).
+schema:
+  type: integer
+  format: int64
+  minimum: 1
+example: 42

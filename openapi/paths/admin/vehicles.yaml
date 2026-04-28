@@ -1,0 +1,383 @@
+collection:
+  get:
+    operationId: admin.vehicles.list
+    summary: List vehicles (admin)
+    description: |
+      Paginated list of `vehicles` rows for the active tenant, with the
+      `vehicle_class` relation eager-loaded. Cursor pagination uses the
+      numeric primary key (`?cursor=<last-id>`); the server caps `limit`
+      at 100. Authorisation goes through the `Vehicle` policy
+      (`viewAny`).
+    tags: [admin-vehicles]
+    security:
+      - hmacAuth: []
+        sanctumBearer: []
+    parameters:
+      - $ref: ../../components/parameters/XTenantId.yaml
+      - $ref: ../../components/parameters/XAppId.yaml
+      - $ref: ../../components/parameters/XTimestamp.yaml
+      - $ref: ../../components/parameters/XNonce.yaml
+      - $ref: ../../components/parameters/XSignature.yaml
+      - $ref: ../../components/parameters/XApiVersion.yaml
+      - $ref: ../../components/parameters/AcceptLanguage.yaml
+      - in: query
+        name: cursor
+        required: false
+        description: Numeric cursor — primary key of the last row of the previous page.
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+      - in: query
+        name: limit
+        required: false
+        description: Page size (server-capped at 100).
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      - in: query
+        name: is_active
+        required: false
+        description: Filter by active flag.
+        schema:
+          type: boolean
+      - in: query
+        name: is_featured
+        required: false
+        description: Filter by featured flag.
+        schema:
+          type: boolean
+      - in: query
+        name: vehicle_class_id
+        required: false
+        description: Filter by class id.
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    responses:
+      '200':
+        description: Page of vehicles.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: ../../components/schemas/Vehicle.yaml
+                meta:
+                  type: object
+                  properties:
+                    pagination:
+                      $ref: ../../components/schemas/PaginationMeta.yaml
+      '401':
+        $ref: ../../components/responses/Unauthorized.yaml
+      '403':
+        $ref: ../../components/responses/Forbidden.yaml
+      '422':
+        $ref: ../../components/responses/UnprocessableEntity.yaml
+      '429':
+        $ref: ../../components/responses/TooManyRequests.yaml
+
+  post:
+    operationId: admin.vehicles.create
+    summary: Create a vehicle (admin)
+    description: |
+      Creates a `vehicles` row in the active tenant.
+      `Idempotency-Key` is recommended for at-least-once retry safety.
+    tags: [admin-vehicles]
+    security:
+      - hmacAuth: []
+        sanctumBearer: []
+    parameters:
+      - $ref: ../../components/parameters/XTenantId.yaml
+      - $ref: ../../components/parameters/XAppId.yaml
+      - $ref: ../../components/parameters/XTimestamp.yaml
+      - $ref: ../../components/parameters/XNonce.yaml
+      - $ref: ../../components/parameters/XSignature.yaml
+      - $ref: ../../components/parameters/XApiVersion.yaml
+      - $ref: ../../components/parameters/AcceptLanguage.yaml
+      - $ref: ../../components/parameters/IdempotencyKey.yaml
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [slug, make, model, year, transmission, fuel_type, seat_count, door_count]
+            properties:
+              slug:
+                type: string
+                maxLength: 100
+              vehicle_class_id:
+                type: [integer, "null"]
+                format: int64
+              make:
+                type: string
+                maxLength: 80
+              model:
+                type: string
+                maxLength: 100
+              year:
+                type: integer
+                minimum: 1950
+                maximum: 2100
+              transmission:
+                type: string
+                enum: [manual, automatic]
+              fuel_type:
+                type: string
+                enum: [gasoline, diesel, hybrid, electric, lpg]
+              seat_count:
+                type: integer
+                minimum: 1
+                maximum: 99
+              door_count:
+                type: integer
+                minimum: 1
+                maximum: 9
+              luggage_capacity:
+                type: integer
+                minimum: 0
+                maximum: 99
+              air_conditioning:
+                type: boolean
+              min_driver_age:
+                type: [integer, "null"]
+                minimum: 18
+                maximum: 99
+              min_license_years:
+                type: [integer, "null"]
+                minimum: 0
+                maximum: 50
+              description:
+                oneOf:
+                  - $ref: ../../components/schemas/I18nString.yaml
+                  - type: 'null'
+              images:
+                type: [array, "null"]
+                items:
+                  type: string
+                  format: uri
+              features:
+                oneOf:
+                  - $ref: ../../components/schemas/I18nString.yaml
+                  - type: 'null'
+              display_order:
+                type: integer
+                minimum: 0
+              is_active:
+                type: boolean
+              is_featured:
+                type: boolean
+    responses:
+      '201':
+        description: Vehicle created.
+        headers:
+          Location:
+            description: Canonical URI of the newly created resource.
+            schema:
+              type: string
+              format: uri
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: ../../components/schemas/Vehicle.yaml
+      '400':
+        $ref: ../../components/responses/BadRequest.yaml
+      '401':
+        $ref: ../../components/responses/Unauthorized.yaml
+      '403':
+        $ref: ../../components/responses/Forbidden.yaml
+      '422':
+        $ref: ../../components/responses/UnprocessableEntity.yaml
+      '429':
+        $ref: ../../components/responses/TooManyRequests.yaml
+
+byId:
+  parameters:
+    - $ref: ../../components/parameters/IdParam.yaml
+  get:
+    operationId: admin.vehicles.show
+    summary: Get a vehicle (admin)
+    description: |
+      Returns the vehicle with `vehicle_class` and `units` eager-loaded.
+      Cross-tenant ids return `404`.
+    tags: [admin-vehicles]
+    security:
+      - hmacAuth: []
+        sanctumBearer: []
+    parameters:
+      - $ref: ../../components/parameters/XTenantId.yaml
+      - $ref: ../../components/parameters/XAppId.yaml
+      - $ref: ../../components/parameters/XTimestamp.yaml
+      - $ref: ../../components/parameters/XNonce.yaml
+      - $ref: ../../components/parameters/XSignature.yaml
+      - $ref: ../../components/parameters/XApiVersion.yaml
+      - $ref: ../../components/parameters/AcceptLanguage.yaml
+    responses:
+      '200':
+        description: Vehicle detail (includes embedded `units`).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  allOf:
+                    - $ref: ../../components/schemas/Vehicle.yaml
+                    - type: object
+                      properties:
+                        units:
+                          type: array
+                          items:
+                            $ref: ../../components/schemas/VehicleUnit.yaml
+      '401':
+        $ref: ../../components/responses/Unauthorized.yaml
+      '403':
+        $ref: ../../components/responses/Forbidden.yaml
+      '404':
+        $ref: ../../components/responses/NotFound.yaml
+
+  put:
+    operationId: admin.vehicles.update
+    summary: Update a vehicle (admin)
+    description: |
+      Replaces the writable fields on a `vehicles` row. The payload
+      follows the FormRequest `sometimes` convention.
+    tags: [admin-vehicles]
+    security:
+      - hmacAuth: []
+        sanctumBearer: []
+    parameters:
+      - $ref: ../../components/parameters/XTenantId.yaml
+      - $ref: ../../components/parameters/XAppId.yaml
+      - $ref: ../../components/parameters/XTimestamp.yaml
+      - $ref: ../../components/parameters/XNonce.yaml
+      - $ref: ../../components/parameters/XSignature.yaml
+      - $ref: ../../components/parameters/XApiVersion.yaml
+      - $ref: ../../components/parameters/AcceptLanguage.yaml
+      - $ref: ../../components/parameters/IdempotencyKey.yaml
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              slug:
+                type: string
+                maxLength: 100
+              vehicle_class_id:
+                type: [integer, "null"]
+                format: int64
+              make:
+                type: string
+                maxLength: 80
+              model:
+                type: string
+                maxLength: 100
+              year:
+                type: integer
+                minimum: 1950
+                maximum: 2100
+              transmission:
+                type: string
+                enum: [manual, automatic]
+              fuel_type:
+                type: string
+                enum: [gasoline, diesel, hybrid, electric, lpg]
+              seat_count:
+                type: integer
+                minimum: 1
+                maximum: 99
+              door_count:
+                type: integer
+                minimum: 1
+                maximum: 9
+              luggage_capacity:
+                type: integer
+                minimum: 0
+                maximum: 99
+              air_conditioning:
+                type: boolean
+              min_driver_age:
+                type: [integer, "null"]
+              min_license_years:
+                type: [integer, "null"]
+              description:
+                oneOf:
+                  - $ref: ../../components/schemas/I18nString.yaml
+                  - type: 'null'
+              images:
+                type: [array, "null"]
+                items:
+                  type: string
+                  format: uri
+              features:
+                oneOf:
+                  - $ref: ../../components/schemas/I18nString.yaml
+                  - type: 'null'
+              display_order:
+                type: integer
+                minimum: 0
+              is_active:
+                type: boolean
+              is_featured:
+                type: boolean
+    responses:
+      '200':
+        description: Vehicle updated.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: ../../components/schemas/Vehicle.yaml
+      '400':
+        $ref: ../../components/responses/BadRequest.yaml
+      '401':
+        $ref: ../../components/responses/Unauthorized.yaml
+      '403':
+        $ref: ../../components/responses/Forbidden.yaml
+      '404':
+        $ref: ../../components/responses/NotFound.yaml
+      '422':
+        $ref: ../../components/responses/UnprocessableEntity.yaml
+
+  delete:
+    operationId: admin.vehicles.delete
+    summary: Delete a vehicle (admin)
+    description: Soft-deletes the vehicle. Cross-tenant ids return `404`.
+    tags: [admin-vehicles]
+    security:
+      - hmacAuth: []
+        sanctumBearer: []
+    parameters:
+      - $ref: ../../components/parameters/XTenantId.yaml
+      - $ref: ../../components/parameters/XAppId.yaml
+      - $ref: ../../components/parameters/XTimestamp.yaml
+      - $ref: ../../components/parameters/XNonce.yaml
+      - $ref: ../../components/parameters/XSignature.yaml
+      - $ref: ../../components/parameters/XApiVersion.yaml
+    responses:
+      '204':
+        description: Vehicle deleted.
+      '401':
+        $ref: ../../components/responses/Unauthorized.yaml
+      '403':
+        $ref: ../../components/responses/Forbidden.yaml
+      '404':
+        $ref: ../../components/responses/NotFound.yaml

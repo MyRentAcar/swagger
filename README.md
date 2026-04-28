@@ -168,3 +168,24 @@ We use path versioning (`/v1`, `/v2`). During the 6-month deprecation
 overlap defined in ADR-009, an `X-Api-Version` request header may pin a
 client to a specific major. Each major lives in its own file pair
 (future: `openapi/openapi-v2.yaml`).
+
+## Sync status
+
+This spec lags the implementation by one PR per sprint. The table below
+tracks which sprint's endpoints are reflected in `openapi/openapi.yaml`.
+
+| Sprint                              | Endpoints | Status   |
+| ----------------------------------- | --------- | -------- |
+| Faz 0 (initial skeleton)            | 18        | Synced   |
+| Sprint 1.4 admin CRUD (6 resources) | +30       | Synced   |
+| Sprint 1.4 pricing quote            | +1        | Synced   |
+| Sprint 1.5 stop-sale check          | +1        | Pending  |
+| Sprint 1.5 reservations CRUD        | +5        | Pending  |
+| Sprint 1.5 currencies               | +2        | Pending  |
+| Sprint 1.5 multi-currency display   | schema    | Pending  |
+
+Sprint 1.5 endpoints land in a follow-up sync once the parallel
+`monolithapi` sprint merges. The Sprint 1.5 multi-currency fields
+(`display_currency`, `display_total`, `display_rate`, `rate_source`,
+`rate_effective_at`) on `PricingQuote` are intentionally omitted from
+this revision — they ship together with the live cross-rate engine.

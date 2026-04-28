@@ -1,67 +1,85 @@
 type: object
 description: |
   Pickup or drop-off location (mirrors `locations`,
-  `docs/03-database-schema.md` §3.3). Tenant-scoped.
+  `docs/03-database-schema.md` §3.3). Tenant-scoped; the `slug` is
+  unique within a tenant. `name` and `address` are i18n maps.
 required:
   - id
+  - slug
   - name
   - type
   - city
+  - country_code
+  - is_active
 properties:
   id:
     type: integer
     format: int64
     example: 10
-  name:
+  slug:
     type: string
-    example: Istanbul Airport (IST)
-  code:
-    type: [string, "null"]
-    example: IST
+    description: Tenant-unique stable identifier (kebab-case).
+    example: istanbul-airport
+  name:
+    $ref: ./I18nString.yaml
   type:
     type: string
     enum:
-      - office
       - airport
+      - office
       - hotel
-      - partner
-      - virtual
+      - station
+      - custom
     example: airport
-  city:
-    type: object
-    required:
-      - id
-      - name
-      - country_code
-    properties:
-      id:
-        type: integer
-        format: int64
-        example: 34
-      name:
-        type: string
-        example: Istanbul
-      country_code:
-        type: string
-        pattern: ^[A-Z]{2}$
-        example: TR
-  address:
+  iata_code:
     type: [string, "null"]
-    example: Tayakadin, 34283 Arnavutkoy/Istanbul
-  lat:
+    minLength: 3
+    maxLength: 3
+    pattern: ^[A-Z]{3}$
+    description: Three-letter IATA airport code where applicable.
+    example: IST
+  address:
+    oneOf:
+      - $ref: ./I18nString.yaml
+      - type: 'null'
+    description: Optional i18n street address.
+  city:
+    type: string
+    maxLength: 120
+    example: Istanbul
+  country_code:
+    type: string
+    minLength: 2
+    maxLength: 2
+    pattern: ^[A-Z]{2}$
+    description: ISO 3166-1 alpha-2 country code.
+    example: TR
+  latitude:
     type: [number, "null"]
     format: double
+    minimum: -90
+    maximum: 90
     example: 41.275278
-  lng:
+  longitude:
     type: [number, "null"]
     format: double
+    minimum: -180
+    maximum: 180
     example: 28.751944
   phone:
     type: [string, "null"]
+    maxLength: 32
     example: "+902129999999"
+  email:
+    type: [string, "null"]
+    format: email
+    maxLength: 200
   working_hours:
-    type: object
-    description: Day-of-week to list of `HH:MM-HH:MM` slots.
+    type: [object, "null"]
+    description: |
+      Day-of-week key (`mon`…`sun`) to a list of `HH:MM-HH:MM` time
+      ranges. An empty list indicates the location is closed for the
+      day; a missing key inherits the tenant default.
     additionalProperties:
       type: array
       items:
@@ -75,8 +93,25 @@ properties:
       fri: ["00:00-23:59"]
       sat: ["00:00-23:59"]
       sun: ["00:00-23:59"]
-  after_hours_pickup_fee:
-    $ref: ./Money.yaml
+  meet_greet_fee:
+    type: [string, "null"]
+    pattern: ^\d+(\.\d{1,4})?$
+    description: |
+      Optional fixed meet-and-greet fee charged on top of the rental
+      total when this location is used as pickup. Stored as a decimal
+      string in the tenant's default currency.
+    example: "150.00"
+  display_order:
+    type: integer
+    minimum: 0
+    default: 0
+    example: 10
   is_active:
     type: boolean
     default: true
+  created_at:
+    type: string
+    format: date-time
+  updated_at:
+    type: string
+    format: date-time

@@ -1,11 +1,16 @@
 type: object
 description: |
   One-way drop fee from a pickup location to a different drop-off
-  location (see `docs/03-database-schema.md` §7).
+  location (see `docs/03-database-schema.md` §7). When `vehicle_id` is
+  null the row applies to all vehicles; a vehicle-specific row
+  overrides the default.
 required:
+  - id
   - pickup_location_id
   - dropoff_location_id
   - fee
+  - currency
+  - is_active
 properties:
   id:
     type: integer
@@ -19,9 +24,29 @@ properties:
     type: integer
     format: int64
     example: 11
+  vehicle_id:
+    type: [integer, "null"]
+    format: int64
+    description: When null, the row applies to all vehicles in the tenant fleet.
+    example: 42
   fee:
-    $ref: ./Money.yaml
-  is_unlimited:
+    type: string
+    pattern: ^\d+(\.\d{1,4})?$
+    description: Decimal amount in `currency`; non-negative.
+    example: "350.00"
+  currency:
+    type: string
+    minLength: 3
+    maxLength: 3
+    pattern: ^[A-Z]{3}$
+    description: ISO 4217 storage currency (defaults to tenant default at create time).
+    example: TRY
+  is_active:
     type: boolean
-    default: false
-    description: When true, the route is supported but billed via custom rule.
+    default: true
+  created_at:
+    type: string
+    format: date-time
+  updated_at:
+    type: string
+    format: date-time

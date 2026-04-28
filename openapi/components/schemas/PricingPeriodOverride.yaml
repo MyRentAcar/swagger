@@ -1,0 +1,90 @@
+type: object
+description: |
+  Day-bucketed override layered on top of `pricing_rules` (mirrors
+  `pricing_period_overrides`, see `docs/03-database-schema.md` §6.2).
+  Each row carries exactly one effective adjustment — either a flat
+  `daily_rate_override`, or a `discount_percentage`, or a
+  `surcharge_percentage`. Override scope is one of: linked
+  `pricing_rule_id`, a specific `vehicle_id`, a `vehicle_class_id`, or
+  tenant-wide when all foreign keys are null. Multiple matching
+  overrides apply in `priority desc, id desc` order (last writer wins
+  on the daily replacement path).
+required:
+  - id
+  - name
+  - start_date
+  - end_date
+  - is_active
+properties:
+  id:
+    type: integer
+    format: int64
+    example: 88
+  pricing_rule_id:
+    type: [integer, "null"]
+    format: int64
+    description: When set, the override only fires when the engine resolved this rule.
+    example: 1234
+  vehicle_id:
+    type: [integer, "null"]
+    format: int64
+  vehicle_class_id:
+    type: [integer, "null"]
+    format: int64
+  name:
+    type: string
+    maxLength: 160
+    example: New Year discount — economy fleet
+  start_date:
+    type: string
+    format: date
+    description: Inclusive lower bound; overlaps the pickup → return interval.
+    example: 2026-12-26
+  end_date:
+    type: string
+    format: date
+    description: Inclusive upper bound; must be ≥ `start_date`.
+    example: 2027-01-05
+  daily_rate_override:
+    type: [string, "null"]
+    pattern: ^\d+(\.\d{1,4})?$
+    description: |
+      Replaces the resolved rule's daily tier outright for the matched
+      window. Mutually exclusive with `discount_percentage` /
+      `surcharge_percentage`.
+    example: "1200.00"
+  discount_percentage:
+    type: [number, "null"]
+    format: float
+    minimum: 0
+    maximum: 100
+    description: Decimal percentage applied to the base amount, e.g. `15.0` = 15%.
+    example: 15.0
+  surcharge_percentage:
+    type: [number, "null"]
+    format: float
+    minimum: -100
+    maximum: 100
+    description: |
+      Signed decimal percentage applied to the base amount. Negative
+      values function as a discount; positive values as a surcharge.
+    example: 25.0
+  min_rental_days_override:
+    type: [integer, "null"]
+    minimum: 1
+    description: When set, raises the resolved rule's minimum rental days for the window.
+    example: 3
+  priority:
+    type: integer
+    default: 0
+    description: Tie-breaker; higher fires later (last-writer-wins on daily replacement).
+    example: 50
+  is_active:
+    type: boolean
+    default: true
+  created_at:
+    type: string
+    format: date-time
+  updated_at:
+    type: string
+    format: date-time

@@ -3,91 +3,133 @@ description: |
   Vehicle "type" template — the contractual unit of a reservation
   (mirrors `vehicles`, see `docs/03-database-schema.md` §4.4). One
   Vehicle is rented "or similar" and may be fulfilled by any matching
-  `VehicleUnit` (plate).
+  `VehicleUnit` (plate). Tenant-scoped; the `slug` is unique within a
+  tenant. `description` and `features` are i18n maps.
 required:
   - id
-  - tenant_id
-  - display_name
-  - class
+  - slug
+  - make
+  - model
+  - year
   - transmission
   - fuel_type
-  - seats
-  - doors
+  - seat_count
+  - door_count
+  - is_active
 properties:
   id:
     type: integer
     format: int64
     example: 42
-  tenant_id:
-    type: integer
+  slug:
+    type: string
+    description: Tenant-unique stable identifier (kebab-case).
+    example: renault-clio-2024
+  vehicle_class_id:
+    type: [integer, "null"]
     format: int64
-    example: 7
-  display_name:
+    example: 3
+  vehicle_class:
+    description: Eager-loaded class projection (present on detail/list responses that include the relation).
+    oneOf:
+      - $ref: ./VehicleClass.yaml
+      - type: 'null'
+  make:
     type: string
-    example: Renault Clio (or similar)
-  class:
-    $ref: ./VehicleClass.yaml
-  brand:
-    type: string
+    maxLength: 80
     example: Renault
   model:
     type: string
+    maxLength: 100
     example: Clio
+  year:
+    type: integer
+    minimum: 1950
+    maximum: 2100
+    example: 2024
   transmission:
     type: string
     enum:
       - manual
-      - auto
-      - semi_auto
+      - automatic
     example: manual
   fuel_type:
     type: string
     enum:
       - gasoline
       - diesel
-      - lpg
       - hybrid
       - electric
+      - lpg
     example: diesel
-  seats:
+  seat_count:
     type: integer
     minimum: 1
-    maximum: 50
+    maximum: 99
     example: 5
-  doors:
+  door_count:
     type: integer
-    minimum: 2
-    maximum: 6
+    minimum: 1
+    maximum: 9
     example: 4
-  luggage_large:
+  luggage_capacity:
     type: [integer, "null"]
     minimum: 0
+    maximum: 99
     example: 2
-  luggage_small:
-    type: [integer, "null"]
-    minimum: 0
-    example: 1
-  has_ac:
+  air_conditioning:
     type: boolean
     default: true
   min_driver_age:
-    type: integer
+    type: [integer, "null"]
+    minimum: 18
+    maximum: 99
     example: 21
   min_license_years:
-    type: integer
+    type: [integer, "null"]
+    minimum: 0
+    maximum: 50
     example: 1
-  image_urls:
-    type: array
+  description:
+    oneOf:
+      - $ref: ./I18nString.yaml
+      - type: 'null'
+    description: Optional i18n description.
+  images:
+    type: [array, "null"]
     items:
       type: string
       format: uri
     example:
       - https://cdn.example.com/vehicles/42/1.jpg
       - https://cdn.example.com/vehicles/42/2.jpg
-  description:
-    type: string
-    description: Localized description (resolved against `Accept-Language`).
-    example: Compact 5-door hatchback ideal for city driving.
+  features:
+    oneOf:
+      - $ref: ./I18nString.yaml
+      - type: 'null'
+    description: |
+      Optional i18n feature highlights (bluetooth, cruise control, …)
+      rendered as a free-form localised string per locale.
+  display_order:
+    type: integer
+    minimum: 0
+    default: 0
+    example: 10
   is_active:
     type: boolean
     default: true
+  is_featured:
+    type: boolean
+    default: false
+  units_count:
+    type: [integer, "null"]
+    description: |
+      Number of `VehicleUnit` rows attached to this vehicle. Hidden by
+      default on list endpoints; populated on the admin detail endpoint.
+    example: 7
+  created_at:
+    type: string
+    format: date-time
+  updated_at:
+    type: string
+    format: date-time

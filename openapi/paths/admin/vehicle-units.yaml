@@ -1,0 +1,297 @@
+collection:
+  parameters:
+    - in: path
+      name: vehicleId
+      required: true
+      description: Parent vehicle template id.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+  get:
+    operationId: admin.vehicleUnits.list
+    summary: List vehicle units for a vehicle (admin)
+    description: |
+      Paginated list of `vehicle_units` rows attached to the parent
+      vehicle. Cursor pagination uses the numeric primary key
+      (`?cursor=<last-id>`); the server caps `limit` at 100.
+      Authorisation goes through the `VehicleUnit` policy (`viewAny`).
+    tags: [admin-vehicle-units]
+    security:
+      - hmacAuth: []
+        sanctumBearer: []
+    parameters:
+      - $ref: ../../components/parameters/XTenantId.yaml
+      - $ref: ../../components/parameters/XAppId.yaml
+      - $ref: ../../components/parameters/XTimestamp.yaml
+      - $ref: ../../components/parameters/XNonce.yaml
+      - $ref: ../../components/parameters/XSignature.yaml
+      - $ref: ../../components/parameters/XApiVersion.yaml
+      - $ref: ../../components/parameters/AcceptLanguage.yaml
+      - in: query
+        name: cursor
+        required: false
+        description: Numeric cursor — primary key of the last row of the previous page.
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+      - in: query
+        name: limit
+        required: false
+        description: Page size (server-capped at 100).
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      - in: query
+        name: status
+        required: false
+        description: Filter by unit status.
+        schema:
+          type: string
+          enum: [active, maintenance, retired]
+    responses:
+      '200':
+        description: Page of vehicle units.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: ../../components/schemas/VehicleUnit.yaml
+                meta:
+                  type: object
+                  properties:
+                    pagination:
+                      $ref: ../../components/schemas/PaginationMeta.yaml
+      '401':
+        $ref: ../../components/responses/Unauthorized.yaml
+      '403':
+        $ref: ../../components/responses/Forbidden.yaml
+      '404':
+        $ref: ../../components/responses/NotFound.yaml
+
+  post:
+    operationId: admin.vehicleUnits.create
+    summary: Create a vehicle unit (admin)
+    description: |
+      Creates a `vehicle_units` row attached to the parent vehicle. The
+      controller always overwrites the body's `vehicle_id` with the URL
+      parameter so the value supplied in the body is ignored. `plate`
+      is unique within a tenant; `vin` is globally unique.
+    tags: [admin-vehicle-units]
+    security:
+      - hmacAuth: []
+        sanctumBearer: []
+    parameters:
+      - $ref: ../../components/parameters/XTenantId.yaml
+      - $ref: ../../components/parameters/XAppId.yaml
+      - $ref: ../../components/parameters/XTimestamp.yaml
+      - $ref: ../../components/parameters/XNonce.yaml
+      - $ref: ../../components/parameters/XSignature.yaml
+      - $ref: ../../components/parameters/XApiVersion.yaml
+      - $ref: ../../components/parameters/IdempotencyKey.yaml
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [plate]
+            properties:
+              plate:
+                type: string
+                maxLength: 32
+              vin:
+                type: [string, "null"]
+                minLength: 17
+                maxLength: 17
+              color:
+                type: [string, "null"]
+                maxLength: 40
+              year:
+                type: [integer, "null"]
+                minimum: 1950
+                maximum: 2100
+              current_km:
+                type: [integer, "null"]
+                minimum: 0
+              purchased_at:
+                type: [string, "null"]
+                format: date
+              status:
+                type: string
+                enum: [active, maintenance, retired]
+                default: active
+              notes:
+                type: [string, "null"]
+                maxLength: 5000
+    responses:
+      '201':
+        description: Unit created.
+        headers:
+          Location:
+            description: Canonical URI of the newly created resource (shallow form `/admin/units/{id}`).
+            schema:
+              type: string
+              format: uri
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: ../../components/schemas/VehicleUnit.yaml
+      '400':
+        $ref: ../../components/responses/BadRequest.yaml
+      '401':
+        $ref: ../../components/responses/Unauthorized.yaml
+      '403':
+        $ref: ../../components/responses/Forbidden.yaml
+      '404':
+        $ref: ../../components/responses/NotFound.yaml
+      '422':
+        $ref: ../../components/responses/UnprocessableEntity.yaml
+      '429':
+        $ref: ../../components/responses/TooManyRequests.yaml
+
+byId:
+  parameters:
+    - $ref: ../../components/parameters/IdParam.yaml
+  get:
+    operationId: admin.vehicleUnits.show
+    summary: Get a vehicle unit (admin)
+    description: |
+      Returns the unit (shallow URL form). Cross-tenant ids return
+      `404`.
+    tags: [admin-vehicle-units]
+    security:
+      - hmacAuth: []
+        sanctumBearer: []
+    parameters:
+      - $ref: ../../components/parameters/XTenantId.yaml
+      - $ref: ../../components/parameters/XAppId.yaml
+      - $ref: ../../components/parameters/XTimestamp.yaml
+      - $ref: ../../components/parameters/XNonce.yaml
+      - $ref: ../../components/parameters/XSignature.yaml
+      - $ref: ../../components/parameters/XApiVersion.yaml
+    responses:
+      '200':
+        description: Vehicle unit detail.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: ../../components/schemas/VehicleUnit.yaml
+      '401':
+        $ref: ../../components/responses/Unauthorized.yaml
+      '403':
+        $ref: ../../components/responses/Forbidden.yaml
+      '404':
+        $ref: ../../components/responses/NotFound.yaml
+
+  put:
+    operationId: admin.vehicleUnits.update
+    summary: Update a vehicle unit (admin)
+    description: |
+      Replaces the writable fields on a `vehicle_units` row. The
+      payload follows the FormRequest `sometimes` convention.
+    tags: [admin-vehicle-units]
+    security:
+      - hmacAuth: []
+        sanctumBearer: []
+    parameters:
+      - $ref: ../../components/parameters/XTenantId.yaml
+      - $ref: ../../components/parameters/XAppId.yaml
+      - $ref: ../../components/parameters/XTimestamp.yaml
+      - $ref: ../../components/parameters/XNonce.yaml
+      - $ref: ../../components/parameters/XSignature.yaml
+      - $ref: ../../components/parameters/XApiVersion.yaml
+      - $ref: ../../components/parameters/IdempotencyKey.yaml
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              plate:
+                type: string
+                maxLength: 32
+              vin:
+                type: [string, "null"]
+                minLength: 17
+                maxLength: 17
+              color:
+                type: [string, "null"]
+                maxLength: 40
+              year:
+                type: [integer, "null"]
+              current_km:
+                type: [integer, "null"]
+                minimum: 0
+              purchased_at:
+                type: [string, "null"]
+                format: date
+              status:
+                type: string
+                enum: [active, maintenance, retired]
+              notes:
+                type: [string, "null"]
+                maxLength: 5000
+    responses:
+      '200':
+        description: Unit updated.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: ../../components/schemas/VehicleUnit.yaml
+      '400':
+        $ref: ../../components/responses/BadRequest.yaml
+      '401':
+        $ref: ../../components/responses/Unauthorized.yaml
+      '403':
+        $ref: ../../components/responses/Forbidden.yaml
+      '404':
+        $ref: ../../components/responses/NotFound.yaml
+      '422':
+        $ref: ../../components/responses/UnprocessableEntity.yaml
+
+  delete:
+    operationId: admin.vehicleUnits.delete
+    summary: Delete a vehicle unit (admin)
+    description: Soft-deletes the unit. Cross-tenant ids return `404`.
+    tags: [admin-vehicle-units]
+    security:
+      - hmacAuth: []
+        sanctumBearer: []
+    parameters:
+      - $ref: ../../components/parameters/XTenantId.yaml
+      - $ref: ../../components/parameters/XAppId.yaml
+      - $ref: ../../components/parameters/XTimestamp.yaml
+      - $ref: ../../components/parameters/XNonce.yaml
+      - $ref: ../../components/parameters/XSignature.yaml
+      - $ref: ../../components/parameters/XApiVersion.yaml
+    responses:
+      '204':
+        description: Unit deleted.
+      '401':
+        $ref: ../../components/responses/Unauthorized.yaml
+      '403':
+        $ref: ../../components/responses/Forbidden.yaml
+      '404':
+        $ref: ../../components/responses/NotFound.yaml

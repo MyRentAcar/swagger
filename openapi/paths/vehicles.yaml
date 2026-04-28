@@ -117,6 +117,128 @@ byId:
       '404':
         $ref: ../components/responses/NotFound.yaml
 
+pricing:
+  parameters:
+    - in: path
+      name: vehicleId
+      required: true
+      description: Vehicle template id to quote.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+  get:
+    operationId: vehicles.pricing
+    summary: Public pricing quote for a vehicle
+    description: |
+      Computes a `PricingQuote` for the given vehicle and rental
+      window using the layered pricing engine (see
+      `App\\Services\\Pricing\\PricingService` and
+      `docs/03-database-schema.md` §6.4):
+
+      1. Find the most-specific applicable `pricing_rule`
+         (vehicle → class → tenant default), filtered by date,
+         weekday, location whitelist and rental duration band.
+      2. Compute the base amount via greedy bucket allocation
+         (monthly → weekly → daily) using the rule's tier rates.
+      3. Apply matching `pricing_period_overrides` (flat daily
+         replacement *or* discount/surcharge percentages).
+      4. Add a `drop_fee` when pickup ≠ dropoff.
+
+      Money is in storage currency (`tenant.currency_default`,
+      possibly overridden by the matched rule). Multi-currency
+      display conversion ships in Sprint 1.5 — until then the quote
+      is single-currency.
+    tags: [Pricing]
+    security:
+      - hmacAuth: []
+    parameters:
+      - $ref: ../components/parameters/XTenantId.yaml
+      - $ref: ../components/parameters/XAppId.yaml
+      - $ref: ../components/parameters/XTimestamp.yaml
+      - $ref: ../components/parameters/XNonce.yaml
+      - $ref: ../components/parameters/XSignature.yaml
+      - $ref: ../components/parameters/XApiVersion.yaml
+      - $ref: ../components/parameters/AcceptLanguage.yaml
+      - in: query
+        name: pickup_date
+        required: true
+        description: Rental start date (inclusive).
+        schema:
+          type: string
+          format: date
+        example: 2026-06-15
+      - in: query
+        name: return_date
+        required: true
+        description: Rental return date (must be ≥ `pickup_date`).
+        schema:
+          type: string
+          format: date
+        example: 2026-06-20
+      - in: query
+        name: pickup_location_id
+        required: false
+        description: Optional pickup location id; required for drop-fee evaluation.
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+      - in: query
+        name: dropoff_location_id
+        required: false
+        description: Optional drop-off location id; required for drop-fee evaluation.
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    responses:
+      '200':
+        description: |
+          Pricing quote. When no pricing rule matches the request, the
+          server returns a deterministic empty quote
+          (`total_amount = 0`, `breakdown.reason = no_pricing_rule_matched`)
+          so the storefront can render a "price on request" CTA.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  $ref: ../components/schemas/PricingQuote.yaml
+                meta:
+                  type: object
+                  properties:
+                    vehicle_id:
+                      type: integer
+                      format: int64
+                    pickup_date:
+                      type: string
+                      format: date
+                    return_date:
+                      type: string
+                      format: date
+                    pickup_location_id:
+                      type: [integer, "null"]
+                      format: int64
+                    dropoff_location_id:
+                      type: [integer, "null"]
+                      format: int64
+                    display_currency:
+                      type: [string, "null"]
+                      pattern: ^[A-Z]{3}$
+                    display_locale:
+                      type: [string, "null"]
+      '401':
+        $ref: ../components/responses/Unauthorized.yaml
+      '404':
+        $ref: ../components/responses/NotFound.yaml
+      '422':
+        $ref: ../components/responses/UnprocessableEntity.yaml
+      '429':
+        $ref: ../components/responses/TooManyRequests.yaml
+
 availability:
   parameters:
     - in: path

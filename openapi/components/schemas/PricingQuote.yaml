@@ -1,0 +1,132 @@
+type: object
+description: |
+  Output envelope for `GET /vehicles/{id}/pricing` and the internal
+  pricing engine (mirrors `App\\Services\\Pricing\\PricingQuote`). All
+  monetary values are decimal numbers in `currency`, the storage
+  currency (defaults to `tenant.currency_default`, may be overridden
+  by the resolved rule's `currency`).
+
+  Multi-currency display conversion (`display_currency`,
+  `display_total`, `display_rate`, `rate_source`, `rate_effective_at`)
+  ships in Sprint 1.5 and is intentionally absent from this schema
+  until then — see `docs/16-multi-currency-design.md`.
+
+  `rules_applied` is the audit trail of every layer that touched the
+  price (matched rule, period overrides, drop fee). `breakdown` is a
+  flat human-friendly map of the same numbers used by the storefront.
+required:
+  - base_amount
+  - drop_fee
+  - discount_amount
+  - surcharge_amount
+  - total_amount
+  - currency
+  - rental_days
+  - rules_applied
+  - breakdown
+properties:
+  base_amount:
+    type: number
+    format: double
+    minimum: 0
+    description: Pre-discount, pre-surcharge, pre-drop-fee subtotal (greedy-bucket allocation).
+    example: 7250.00
+  drop_fee:
+    type: number
+    format: double
+    minimum: 0
+    description: One-way drop fee for `pickup_location_id` ≠ `dropoff_location_id`; 0 otherwise.
+    example: 350.00
+  discount_amount:
+    type: number
+    format: double
+    minimum: 0
+    description: Sum of period-override discount components.
+    example: 1087.50
+  surcharge_amount:
+    type: number
+    format: double
+    description: Sum of period-override surcharge components (may be negative).
+    example: 0.00
+  total_amount:
+    type: number
+    format: double
+    description: |
+      Final total, rounded to two decimals:
+      `base_amount - discount_amount + surcharge_amount + drop_fee`.
+    example: 6512.50
+  currency:
+    type: string
+    minLength: 3
+    maxLength: 3
+    pattern: ^[A-Z]{3}$
+    description: |
+      ISO 4217 storage currency. Resolved from the matched
+      `pricing_rule.currency`, falling back to `tenant.currency_default`
+      and finally to `TRY`. Display-currency conversion is a Sprint 1.5
+      feature and is not yet part of this payload.
+    example: TRY
+  rental_days:
+    type: integer
+    minimum: 0
+    description: Whole rental days (ceiling of the pickup → return interval, see `CalculatesRentalDays`).
+    example: 5
+  rules_applied:
+    type: array
+    description: |
+      Ordered audit trail. Entry shapes vary by `type`; `pricing_rule`
+      and `period_override` carry a `name`, `drop_fee` carries the
+      pickup/dropoff IDs.
+    items:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - pricing_rule
+            - period_override
+            - drop_fee
+        id:
+          type: integer
+          format: int64
+        name:
+          type: [string, "null"]
+        specificity:
+          type: [string, "null"]
+          enum:
+            - vehicle
+            - vehicle_class
+            - tenant_default
+            - null
+          description: Present on `pricing_rule` entries.
+        priority:
+          type: [integer, "null"]
+          description: Present on `period_override` entries.
+        pickup_location_id:
+          type: [integer, "null"]
+          format: int64
+          description: Present on `drop_fee` entries.
+        dropoff_location_id:
+          type: [integer, "null"]
+          format: int64
+          description: Present on `drop_fee` entries.
+  breakdown:
+    type: object
+    description: |
+      Flat key→value map of the numbers behind `total_amount`. The
+      shape is stable for storefront rendering but the platform
+      reserves the right to add new keys; clients must tolerate
+      unknown keys.
+    additionalProperties: true
+    example:
+      rental_days: 5
+      daily_rate: 1450.00
+      weekly_rate: 9000.00
+      monthly_rate: 32000.00
+      base_amount: 7250.00
+      discount_amount: 1087.50
+      surcharge_amount: 0.00
+      drop_fee: 350.00
+      total_amount: 6512.50

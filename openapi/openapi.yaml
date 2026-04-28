@@ -71,6 +71,20 @@ tags:
     description: Three-level stop-sale availability check (plate, vehicle, global).
   - name: B2B Agency
     description: B2B agency partner channel (Passport client_credentials).
+  - name: Pricing
+    description: Public pricing quote endpoint (layered rule + override + drop-fee engine).
+  - name: admin-vehicle-classes
+    description: Tenant admin CRUD for marketing vehicle classes.
+  - name: admin-vehicles
+    description: Tenant admin CRUD for vehicle templates.
+  - name: admin-vehicle-units
+    description: Tenant admin CRUD for plate-level vehicle units.
+  - name: admin-locations
+    description: Tenant admin CRUD for pickup/drop-off locations.
+  - name: admin-drop-fees
+    description: Tenant admin CRUD for one-way drop fees.
+  - name: admin-pricing-rules
+    description: Tenant admin CRUD for pricing rules.
 
 security:
   - hmacAuth: []
@@ -89,6 +103,8 @@ paths:
     $ref: ./paths/vehicles.yaml#/byId
   /vehicles/{vehicleId}/availability:
     $ref: ./paths/vehicles.yaml#/availability
+  /vehicles/{vehicleId}/pricing:
+    $ref: ./paths/vehicles.yaml#/pricing
 
   /search/availability:
     $ref: ./paths/search.yaml#/availability
@@ -118,6 +134,37 @@ paths:
     $ref: ./paths/b2b-agency.yaml#/quota
   /agency/reservations:
     $ref: ./paths/b2b-agency.yaml#/reservations
+
+  # Tenant admin CRUD (Sprint 1.4) — `/admin/*`. HMAC + Sanctum + policy.
+  /admin/vehicle-classes:
+    $ref: ./paths/admin/vehicle-classes.yaml#/collection
+  /admin/vehicle-classes/{id}:
+    $ref: ./paths/admin/vehicle-classes.yaml#/byId
+
+  /admin/vehicles:
+    $ref: ./paths/admin/vehicles.yaml#/collection
+  /admin/vehicles/{id}:
+    $ref: ./paths/admin/vehicles.yaml#/byId
+
+  /admin/vehicles/{vehicleId}/units:
+    $ref: ./paths/admin/vehicle-units.yaml#/collection
+  /admin/units/{id}:
+    $ref: ./paths/admin/vehicle-units.yaml#/byId
+
+  /admin/locations:
+    $ref: ./paths/admin/locations.yaml#/collection
+  /admin/locations/{id}:
+    $ref: ./paths/admin/locations.yaml#/byId
+
+  /admin/drop-fees:
+    $ref: ./paths/admin/drop-fees.yaml#/collection
+  /admin/drop-fees/{id}:
+    $ref: ./paths/admin/drop-fees.yaml#/byId
+
+  /admin/pricing-rules:
+    $ref: ./paths/admin/pricing-rules.yaml#/collection
+  /admin/pricing-rules/{id}:
+    $ref: ./paths/admin/pricing-rules.yaml#/byId
 
 components:
   securitySchemes:
@@ -151,6 +198,10 @@ components:
       $ref: ./components/parameters/PaginationCursor.yaml
     PaginationLimit:
       $ref: ./components/parameters/PaginationLimit.yaml
+    IdParam:
+      $ref: ./components/parameters/IdParam.yaml
+    SlugParam:
+      $ref: ./components/parameters/SlugParam.yaml
 
   responses:
     BadRequest:
@@ -197,6 +248,12 @@ components:
       $ref: ./components/schemas/VehicleUnit.yaml
     PricingRule:
       $ref: ./components/schemas/PricingRule.yaml
+    PricingPeriodOverride:
+      $ref: ./components/schemas/PricingPeriodOverride.yaml
+    PricingQuote:
+      $ref: ./components/schemas/PricingQuote.yaml
+    I18nString:
+      $ref: ./components/schemas/I18nString.yaml
     StopSale:
       $ref: ./components/schemas/StopSale.yaml
     StopSaleCheckResult:

@@ -1,0 +1,345 @@
+collection:
+  get:
+    operationId: admin.locations.list
+    summary: List locations (admin)
+    description: |
+      Paginated list of `locations` rows for the active tenant. Cursor
+      pagination uses the numeric primary key (`?cursor=<last-id>`);
+      the server caps `limit` at 100. Authorisation goes through the
+      `Location` policy (`viewAny`).
+    tags: [admin-locations]
+    security:
+      - hmacAuth: []
+        sanctumBearer: []
+    parameters:
+      - $ref: ../../components/parameters/XTenantId.yaml
+      - $ref: ../../components/parameters/XAppId.yaml
+      - $ref: ../../components/parameters/XTimestamp.yaml
+      - $ref: ../../components/parameters/XNonce.yaml
+      - $ref: ../../components/parameters/XSignature.yaml
+      - $ref: ../../components/parameters/XApiVersion.yaml
+      - $ref: ../../components/parameters/AcceptLanguage.yaml
+      - in: query
+        name: cursor
+        required: false
+        description: Numeric cursor — primary key of the last row of the previous page.
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+      - in: query
+        name: limit
+        required: false
+        description: Page size (server-capped at 100).
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      - in: query
+        name: type
+        required: false
+        description: Filter by location type.
+        schema:
+          type: string
+          enum: [airport, office, hotel, station, custom]
+      - in: query
+        name: is_active
+        required: false
+        description: Filter by active flag.
+        schema:
+          type: boolean
+    responses:
+      '200':
+        description: Page of locations.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: ../../components/schemas/Location.yaml
+                meta:
+                  type: object
+                  properties:
+                    pagination:
+                      $ref: ../../components/schemas/PaginationMeta.yaml
+      '401':
+        $ref: ../../components/responses/Unauthorized.yaml
+      '403':
+        $ref: ../../components/responses/Forbidden.yaml
+      '422':
+        $ref: ../../components/responses/UnprocessableEntity.yaml
+
+  post:
+    operationId: admin.locations.create
+    summary: Create a location (admin)
+    description: |
+      Creates a `locations` row in the active tenant.
+      `Idempotency-Key` is recommended for at-least-once retry safety.
+    tags: [admin-locations]
+    security:
+      - hmacAuth: []
+        sanctumBearer: []
+    parameters:
+      - $ref: ../../components/parameters/XTenantId.yaml
+      - $ref: ../../components/parameters/XAppId.yaml
+      - $ref: ../../components/parameters/XTimestamp.yaml
+      - $ref: ../../components/parameters/XNonce.yaml
+      - $ref: ../../components/parameters/XSignature.yaml
+      - $ref: ../../components/parameters/XApiVersion.yaml
+      - $ref: ../../components/parameters/AcceptLanguage.yaml
+      - $ref: ../../components/parameters/IdempotencyKey.yaml
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [slug, name, type, city, country_code]
+            properties:
+              slug:
+                type: string
+                maxLength: 100
+              name:
+                $ref: ../../components/schemas/I18nString.yaml
+              type:
+                type: string
+                enum: [airport, office, hotel, station, custom]
+              iata_code:
+                type: [string, "null"]
+                minLength: 3
+                maxLength: 3
+                pattern: ^[A-Z]{3}$
+              address:
+                oneOf:
+                  - $ref: ../../components/schemas/I18nString.yaml
+                  - type: 'null'
+              city:
+                type: string
+                maxLength: 120
+              country_code:
+                type: string
+                minLength: 2
+                maxLength: 2
+                pattern: ^[A-Z]{2}$
+              latitude:
+                type: [number, "null"]
+                format: double
+                minimum: -90
+                maximum: 90
+              longitude:
+                type: [number, "null"]
+                format: double
+                minimum: -180
+                maximum: 180
+              phone:
+                type: [string, "null"]
+                maxLength: 32
+              email:
+                type: [string, "null"]
+                format: email
+                maxLength: 200
+              working_hours:
+                type: [object, "null"]
+                additionalProperties:
+                  type: array
+                  items:
+                    type: string
+                    pattern: ^\d{2}:\d{2}-\d{2}:\d{2}$
+              meet_greet_fee:
+                type: number
+                format: double
+                minimum: 0
+              is_active:
+                type: boolean
+              display_order:
+                type: integer
+                minimum: 0
+    responses:
+      '201':
+        description: Location created.
+        headers:
+          Location:
+            description: Canonical URI of the newly created resource.
+            schema:
+              type: string
+              format: uri
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: ../../components/schemas/Location.yaml
+      '400':
+        $ref: ../../components/responses/BadRequest.yaml
+      '401':
+        $ref: ../../components/responses/Unauthorized.yaml
+      '403':
+        $ref: ../../components/responses/Forbidden.yaml
+      '422':
+        $ref: ../../components/responses/UnprocessableEntity.yaml
+      '429':
+        $ref: ../../components/responses/TooManyRequests.yaml
+
+byId:
+  parameters:
+    - $ref: ../../components/parameters/IdParam.yaml
+  get:
+    operationId: admin.locations.show
+    summary: Get a location (admin)
+    description: Returns the location. Cross-tenant ids return `404`.
+    tags: [admin-locations]
+    security:
+      - hmacAuth: []
+        sanctumBearer: []
+    parameters:
+      - $ref: ../../components/parameters/XTenantId.yaml
+      - $ref: ../../components/parameters/XAppId.yaml
+      - $ref: ../../components/parameters/XTimestamp.yaml
+      - $ref: ../../components/parameters/XNonce.yaml
+      - $ref: ../../components/parameters/XSignature.yaml
+      - $ref: ../../components/parameters/XApiVersion.yaml
+      - $ref: ../../components/parameters/AcceptLanguage.yaml
+    responses:
+      '200':
+        description: Location detail.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: ../../components/schemas/Location.yaml
+      '401':
+        $ref: ../../components/responses/Unauthorized.yaml
+      '403':
+        $ref: ../../components/responses/Forbidden.yaml
+      '404':
+        $ref: ../../components/responses/NotFound.yaml
+
+  put:
+    operationId: admin.locations.update
+    summary: Update a location (admin)
+    description: |
+      Replaces the writable fields on a `locations` row. The payload
+      follows the FormRequest `sometimes` convention.
+    tags: [admin-locations]
+    security:
+      - hmacAuth: []
+        sanctumBearer: []
+    parameters:
+      - $ref: ../../components/parameters/XTenantId.yaml
+      - $ref: ../../components/parameters/XAppId.yaml
+      - $ref: ../../components/parameters/XTimestamp.yaml
+      - $ref: ../../components/parameters/XNonce.yaml
+      - $ref: ../../components/parameters/XSignature.yaml
+      - $ref: ../../components/parameters/XApiVersion.yaml
+      - $ref: ../../components/parameters/AcceptLanguage.yaml
+      - $ref: ../../components/parameters/IdempotencyKey.yaml
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              slug:
+                type: string
+                maxLength: 100
+              name:
+                $ref: ../../components/schemas/I18nString.yaml
+              type:
+                type: string
+                enum: [airport, office, hotel, station, custom]
+              iata_code:
+                type: [string, "null"]
+                minLength: 3
+                maxLength: 3
+              address:
+                oneOf:
+                  - $ref: ../../components/schemas/I18nString.yaml
+                  - type: 'null'
+              city:
+                type: string
+              country_code:
+                type: string
+                minLength: 2
+                maxLength: 2
+              latitude:
+                type: [number, "null"]
+              longitude:
+                type: [number, "null"]
+              phone:
+                type: [string, "null"]
+              email:
+                type: [string, "null"]
+                format: email
+              working_hours:
+                type: [object, "null"]
+                additionalProperties:
+                  type: array
+                  items:
+                    type: string
+                    pattern: ^\d{2}:\d{2}-\d{2}:\d{2}$
+              meet_greet_fee:
+                type: number
+                format: double
+                minimum: 0
+              is_active:
+                type: boolean
+              display_order:
+                type: integer
+                minimum: 0
+    responses:
+      '200':
+        description: Location updated.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: ../../components/schemas/Location.yaml
+      '400':
+        $ref: ../../components/responses/BadRequest.yaml
+      '401':
+        $ref: ../../components/responses/Unauthorized.yaml
+      '403':
+        $ref: ../../components/responses/Forbidden.yaml
+      '404':
+        $ref: ../../components/responses/NotFound.yaml
+      '422':
+        $ref: ../../components/responses/UnprocessableEntity.yaml
+
+  delete:
+    operationId: admin.locations.delete
+    summary: Delete a location (admin)
+    description: Soft-deletes the location. Cross-tenant ids return `404`.
+    tags: [admin-locations]
+    security:
+      - hmacAuth: []
+        sanctumBearer: []
+    parameters:
+      - $ref: ../../components/parameters/XTenantId.yaml
+      - $ref: ../../components/parameters/XAppId.yaml
+      - $ref: ../../components/parameters/XTimestamp.yaml
+      - $ref: ../../components/parameters/XNonce.yaml
+      - $ref: ../../components/parameters/XSignature.yaml
+      - $ref: ../../components/parameters/XApiVersion.yaml
+    responses:
+      '204':
+        description: Location deleted.
+      '401':
+        $ref: ../../components/responses/Unauthorized.yaml
+      '403':
+        $ref: ../../components/responses/Forbidden.yaml
+      '404':
+        $ref: ../../components/responses/NotFound.yaml

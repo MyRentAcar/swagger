@@ -1,28 +1,42 @@
 type: object
 description: |
-  Marketing class / category for a vehicle (mirrors
-  `vehicle_categories`, see `docs/03-database-schema.md` §4.1).
-  Tenant-scoped.
+  Marketing class / category for a vehicle (mirrors `vehicle_classes`,
+  see `docs/03-database-schema.md` §4.1). Tenant-scoped; the `slug` is
+  unique within a tenant. `name` and `description` are i18n maps —
+  resolve them against `Accept-Language`.
 required:
   - id
-  - code
+  - slug
   - name
+  - is_active
 properties:
   id:
     type: integer
     format: int64
     example: 3
-  code:
+  slug:
     type: string
-    description: Tenant-internal class code.
-    example: ECONOMY
+    description: Tenant-unique stable identifier (kebab-case).
+    example: economy
   name:
-    type: string
-    example: Economy
-  acriss_code:
-    type: string
-    description: Optional ACRISS classification (e.g. `ECMN`).
-    example: ECMN
-  sort_order:
+    $ref: ./I18nString.yaml
+  description:
+    oneOf:
+      - $ref: ./I18nString.yaml
+      - type: 'null'
+    description: Optional i18n description.
+  display_order:
     type: integer
+    minimum: 0
     default: 0
+    description: Sort key on listing pages; lower values surface first.
+    example: 10
+  is_active:
+    type: boolean
+    default: true
+  created_at:
+    type: string
+    format: date-time
+  updated_at:
+    type: string
+    format: date-time

@@ -2,13 +2,15 @@ type: object
 description: |
   Physical vehicle (plate-level), fulfilling a `Vehicle` template.
   Mirrors `vehicle_units` (`docs/03-database-schema.md` §4.5).
-  Plate-level data is hidden from public B2C/B2B responses; this
-  schema is used by tenant operations and B2B partner reservation
-  detail responses where the tenant has opted in.
+  Plate-level data is hidden from public B2C/B2B responses; this schema
+  is used by tenant operations admin endpoints and B2B partner
+  reservation detail responses where the tenant has opted in. The
+  `plate` value is unique within a tenant; `vin` is globally unique
+  (ISO 3779 17-character VIN).
 required:
   - id
   - vehicle_id
-  - plate_number
+  - plate
   - status
 properties:
   id:
@@ -19,34 +21,51 @@ properties:
     type: integer
     format: int64
     example: 42
-  plate_number:
+  plate:
     type: string
-    example: 34 AB 1234
+    maxLength: 32
+    description: |
+      Plate number string. The platform stores it verbatim; for Turkish
+      plates the canonical format is `34 ABC 1234` but the field is not
+      pattern-restricted to allow non-TR fleets.
+    example: 34 ABC 1234
+  vin:
+    type: [string, "null"]
+    minLength: 17
+    maxLength: 17
+    description: ISO 3779 17-character Vehicle Identification Number; globally unique.
+    example: VF15RBL0H67890123
   color:
     type: [string, "null"]
+    maxLength: 40
     example: White
   year:
     type: [integer, "null"]
-    minimum: 1980
+    minimum: 1950
     maximum: 2100
     example: 2024
-  vin:
-    type: [string, "null"]
-    example: VF15RBL0H67890123
   current_km:
-    type: integer
+    type: [integer, "null"]
     minimum: 0
     example: 14523
-  current_location_id:
-    type: [integer, "null"]
-    format: int64
-    example: 10
+  purchased_at:
+    type: [string, "null"]
+    format: date
+    example: 2024-03-12
   status:
     type: string
     enum:
-      - available
-      - rented
+      - active
       - maintenance
-      - stop_sale
       - retired
-    example: available
+    example: active
+  notes:
+    type: [string, "null"]
+    maxLength: 5000
+    description: Free-form operations notes (admin-only surface).
+  created_at:
+    type: string
+    format: date-time
+  updated_at:
+    type: string
+    format: date-time
