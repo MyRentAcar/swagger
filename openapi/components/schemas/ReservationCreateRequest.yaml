@@ -1,0 +1,70 @@
+type: object
+description: |
+  Request body for `POST /reservations`. Either `quote_id` (preferred,
+  locks the price returned by `POST /search/availability`) or the
+  full `vehicle_id` + window must be supplied. `Idempotency-Key`
+  header is required.
+required:
+  - pickup_location_id
+  - dropoff_location_id
+  - pickup_at
+  - dropoff_at
+  - customer
+properties:
+  quote_id:
+    type: string
+    description: Quote/offer identifier returned by an availability search.
+    example: 01HVZ8T3K9QPRX0M4YF6BCDEHJ
+  vehicle_id:
+    type: integer
+    format: int64
+    description: Required when `quote_id` is not provided.
+    example: 42
+  pickup_location_id:
+    type: integer
+    format: int64
+    example: 10
+  dropoff_location_id:
+    type: integer
+    format: int64
+    example: 11
+  pickup_at:
+    type: string
+    format: date-time
+    example: 2026-05-10T10:00:00Z
+  dropoff_at:
+    type: string
+    format: date-time
+    example: 2026-05-13T10:00:00Z
+  customer:
+    $ref: ./Customer.yaml
+  drivers:
+    type: array
+    items:
+      $ref: ./Customer.yaml
+    description: Additional drivers (the primary driver is `customer`).
+  extras:
+    type: array
+    items:
+      type: object
+      required:
+        - id
+        - quantity
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 5
+        quantity:
+          type: integer
+          minimum: 1
+          example: 1
+  insurance_package_id:
+    type: [integer, "null"]
+    format: int64
+  promo_code:
+    type: [string, "null"]
+    example: SUMMER25
+  notes:
+    type: [string, "null"]
+    maxLength: 1000

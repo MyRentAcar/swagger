@@ -1,0 +1,14 @@
+description: |
+  Authenticated but the principal lacks the required ability/scope, or
+  the request fails a tenant-scope/policy check.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Error.yaml
+    example:
+      type: https://docs.example.com/api/v1/errors/forbidden
+      title: Forbidden
+      status: 403
+      detail: This token does not have the required scope.
+      instance: /v1/agency/reservations
+      code: insufficient_scope

@@ -1,0 +1,161 @@
+oauthToken:
+  post:
+    operationId: agency.oauth.token
+    summary: Issue a Passport access token (client_credentials)
+    description: |
+      OAuth 2.0 §4.4 client_credentials flow for B2B agency partners.
+      The token is short-lived (1h, no refresh token) and scoped to
+      what the partner was granted at onboarding (see
+      `docs/15-b2b-agency-design.md` §3). HMAC headers are still
+      required on this endpoint.
+    tags: [B2B Agency]
+    security:
+      - hmacAuth: []
+    parameters:
+      - $ref: ../components/parameters/XTenantId.yaml
+      - $ref: ../components/parameters/XAppId.yaml
+      - $ref: ../components/parameters/XTimestamp.yaml
+      - $ref: ../components/parameters/XNonce.yaml
+      - $ref: ../components/parameters/XSignature.yaml
+      - $ref: ../components/parameters/XApiVersion.yaml
+    requestBody:
+      required: true
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            $ref: ../components/schemas/OAuthTokenRequest.yaml
+    responses:
+      '200':
+        description: Access token issued.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/OAuthTokenResponse.yaml
+      '400':
+        description: |
+          OAuth-style error envelope: `{ "error": "invalid_grant"
+          | "invalid_client" | "invalid_scope", ... }`. Note this is
+          NOT the RFC 7807 envelope — it follows RFC 6749 §5.2.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [error]
+              properties:
+                error:
+                  type: string
+                  enum: [invalid_request, invalid_client, invalid_grant, invalid_scope, unsupported_grant_type]
+                error_description:
+                  type: string
+      '401':
+        $ref: ../components/responses/Unauthorized.yaml
+      '429':
+        $ref: ../components/responses/TooManyRequests.yaml
+
+quota:
+  get:
+    operationId: agency.quota
+    summary: Read the partner's monthly quota snapshot
+    description: |
+      Returns the current period's reservation quota and consumption
+      (see `docs/15-b2b-agency-design.md` §4.2). Useful for the
+      partner dashboard to surface "X reservations remaining this
+      month".
+    tags: [B2B Agency]
+    security:
+      - hmacAuth: []
+        passportOAuth:
+          - reservations:read
+    parameters:
+      - $ref: ../components/parameters/XTenantId.yaml
+      - $ref: ../components/parameters/XAppId.yaml
+      - $ref: ../components/parameters/XTimestamp.yaml
+      - $ref: ../components/parameters/XNonce.yaml
+      - $ref: ../components/parameters/XSignature.yaml
+      - $ref: ../components/parameters/XApiVersion.yaml
+    responses:
+      '200':
+        description: Quota snapshot.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: ../components/schemas/AgencyQuota.yaml
+      '401':
+        $ref: ../components/responses/Unauthorized.yaml
+      '403':
+        $ref: ../components/responses/Forbidden.yaml
+
+reservations:
+  post:
+    operationId: agency.reservations.create
+    summary: Create a B2B agency reservation
+    description: |
+      B2B-channel reservation creation. Requires a valid Passport
+      bearer with `reservations:write` scope and an `Idempotency-Key`
+      header (`docs/15-b2b-agency-design.md` §6.4 + §6.9). Pricing
+      mode (commission vs net rate) is read from the partner record
+      and reflected in the response totals.
+    tags: [B2B Agency]
+    security:
+      - hmacAuth: []
+        passportOAuth:
+          - reservations:write
+    parameters:
+      - $ref: ../components/parameters/XTenantId.yaml
+      - $ref: ../components/parameters/XAppId.yaml
+      - $ref: ../components/parameters/XTimestamp.yaml
+      - $ref: ../components/parameters/XNonce.yaml
+      - $ref: ../components/parameters/XSignature.yaml
+      - $ref: ../components/parameters/XApiVersion.yaml
+      - name: Idempotency-Key
+        in: header
+        required: true
+        description: ULID idempotency key (24h cache).
+        schema:
+          type: string
+          pattern: ^[0-9A-HJKMNP-TV-Z]{26}$
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/ReservationCreateRequest.yaml
+              - type: object
+                properties:
+                  external_ref:
+                    type: string
+                    description: Partner's own correlation id.
+                    maxLength: 64
+                    example: AGN-2026-04-12345
+    responses:
+      '201':
+        description: Reservation created.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: ../components/schemas/Reservation.yaml
+      '400':
+        $ref: ../components/responses/BadRequest.yaml
+      '401':
+        $ref: ../components/responses/Unauthorized.yaml
+      '403':
+        $ref: ../components/responses/Forbidden.yaml
+      '409':
+        description: Conflict (idempotency mismatch, quota exhausted, vehicle no longer available).
+        content:
+          application/problem+json:
+            schema:
+              $ref: ../components/schemas/Error.yaml
+      '422':
+        $ref: ../components/responses/UnprocessableEntity.yaml
+      '429':
+        $ref: ../components/responses/TooManyRequests.yaml

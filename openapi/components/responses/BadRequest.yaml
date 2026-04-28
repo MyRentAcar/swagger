@@ -1,0 +1,12 @@
+description: Malformed request (invalid JSON, missing required headers, bad parameter shape).
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Error.yaml
+    example:
+      type: https://docs.example.com/api/v1/errors/bad-request
+      title: Bad Request
+      status: 400
+      detail: The request body is not valid JSON.
+      instance: /v1/reservations
+      code: bad_request

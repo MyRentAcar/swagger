@@ -1,0 +1,43 @@
+type: object
+description: |
+  RFC 7807 Problem Details envelope used by every error response across
+  the API. The `code` field is a stable machine-readable identifier
+  that clients should branch on; `detail` is human-readable and may be
+  localized.
+required:
+  - type
+  - title
+  - status
+  - code
+properties:
+  type:
+    type: string
+    format: uri
+    description: URI reference identifying the problem type.
+    example: https://docs.example.com/api/v1/errors/validation
+  title:
+    type: string
+    description: Short, human-readable summary of the problem.
+    example: Unprocessable Entity
+  status:
+    type: integer
+    minimum: 100
+    maximum: 599
+    description: HTTP status code (mirrors the response status line).
+    example: 422
+  detail:
+    type: string
+    description: Human-readable explanation specific to this occurrence.
+    example: The given data was invalid.
+  instance:
+    type: string
+    description: URI reference identifying the specific occurrence (path or correlation id).
+    example: /v1/reservations
+  code:
+    type: string
+    description: Stable machine-readable error code.
+    example: validation_failed
+  retry_after:
+    type: integer
+    description: Seconds the client should wait before retrying (only on 429/503).
+    example: 23

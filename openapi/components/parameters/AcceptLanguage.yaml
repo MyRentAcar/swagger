@@ -1,0 +1,10 @@
+name: Accept-Language
+in: header
+required: false
+description: |
+  RFC 7231 language preference. Currently supported: `tr`, `en`, `de`,
+  `ru`, `ar`. Falls back to `tenant.locale_default` then `tr`. See
+  `docs/09-localization.md`.
+schema:
+  type: string
+  example: tr-TR,tr;q=0.9,en;q=0.8

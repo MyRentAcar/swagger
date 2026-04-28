@@ -1,0 +1,20 @@
+type: oauth2
+description: |
+  Laravel Passport OAuth 2.0 `client_credentials` flow used by B2B agency
+  partners. The `client_id` / `client_secret` are issued at onboarding
+  (see `docs/15-b2b-agency-design.md` §2). Tokens are short-lived (1h)
+  Bearer JWTs; refresh tokens are disabled.
+
+  The token endpoint is itself protected by HMAC (Layer 2); the issued
+  Bearer token is then accepted on `/agency/*` routes alongside HMAC.
+
+  Available scopes are bound to the partner record; requesting an
+  unsupported scope returns `invalid_scope`.
+flows:
+  clientCredentials:
+    tokenUrl: https://api.siteadi.com/v1/agency/oauth/token
+    scopes:
+      availability:read: Search agency availability and pricing.
+      reservations:read: Read reservations belonging to the partner.
+      reservations:write: Create, modify and cancel partner reservations.
+      webhook:configure: Manage outbound webhook subscriptions.

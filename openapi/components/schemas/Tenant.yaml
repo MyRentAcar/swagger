@@ -1,0 +1,89 @@
+type: object
+description: |
+  Tenant configuration as exposed to the active tenant's surface (web
+  storefront, mobile, agency portal). Mirrors the `tenants` table
+  selectively — billing fields and KVKK timestamps are omitted from
+  the public-facing projection.
+required:
+  - id
+  - slug
+  - name
+  - status
+  - currency_default
+  - locale_default
+  - timezone
+properties:
+  id:
+    type: integer
+    format: int64
+    example: 7
+  slug:
+    type: string
+    pattern: ^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$
+    example: acme-rent-a-car
+  name:
+    type: string
+    example: Acme Rent A Car
+  custom_domain:
+    type: [string, "null"]
+    example: arac.acme.com
+  status:
+    type: string
+    enum:
+      - trial
+      - active
+      - suspended
+      - cancelled
+    example: active
+  currency_default:
+    type: string
+    pattern: ^[A-Z]{3}$
+    example: TRY
+  supported_currencies:
+    type: array
+    description: Display whitelist; null/empty means only the default is offered.
+    items:
+      type: string
+      pattern: ^[A-Z]{3}$
+    example:
+      - TRY
+      - USD
+      - EUR
+      - GBP
+  locale_default:
+    type: string
+    description: BCP 47 locale tag.
+    example: tr_TR
+  supported_locales:
+    type: array
+    items:
+      type: string
+    example:
+      - tr_TR
+      - en_US
+      - de_DE
+      - ru_RU
+      - ar_SA
+  timezone:
+    type: string
+    example: Europe/Istanbul
+  branding:
+    type: object
+    properties:
+      brand_color:
+        type: [string, "null"]
+        pattern: ^#[0-9A-Fa-f]{6}$
+        example: "#0F62FE"
+      logo_url:
+        type: [string, "null"]
+        format: uri
+        example: https://cdn.example.com/tenants/7/logo.svg
+  features:
+    type: object
+    description: Plan-derived feature flags currently active for this tenant.
+    additionalProperties:
+      type: boolean
+    example:
+      api_access: true
+      white_label: true
+      b2b_agency: true

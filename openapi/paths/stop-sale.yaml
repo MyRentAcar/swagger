@@ -1,0 +1,71 @@
+check:
+  get:
+    operationId: stopSale.check
+    summary: Three-level stop-sale availability check
+    description: |
+      Evaluates the `plate` → `vehicle` → `global` precedence chain
+      from `stop_sales` for a given vehicle and date window
+      (see `docs/06-stop-sale-design.md` and
+      `docs/03-database-schema.md` §5.3). Use this endpoint from the
+      Backoffice UI, B2B partner pre-flight checks, or for debugging
+      "why is this car not bookable" tickets.
+    tags: [StopSale]
+    security:
+      - hmacAuth: []
+    parameters:
+      - $ref: ../components/parameters/XTenantId.yaml
+      - $ref: ../components/parameters/XAppId.yaml
+      - $ref: ../components/parameters/XTimestamp.yaml
+      - $ref: ../components/parameters/XNonce.yaml
+      - $ref: ../components/parameters/XSignature.yaml
+      - $ref: ../components/parameters/XApiVersion.yaml
+      - in: query
+        name: vehicle_id
+        required: true
+        description: Vehicle template id to evaluate.
+        schema:
+          type: integer
+          format: int64
+      - in: query
+        name: vehicle_unit_id
+        required: false
+        description: Optional plate id; when omitted only `vehicle` and `global` scopes are checked.
+        schema:
+          type: integer
+          format: int64
+      - in: query
+        name: from
+        required: true
+        description: Window start (inclusive).
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: to
+        required: true
+        description: Window end (exclusive).
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: location_id
+        required: false
+        schema:
+          type: integer
+          format: int64
+        description: Restricts global/vehicle scopes that are pinned to a single location.
+    responses:
+      '200':
+        description: Check result.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: ../components/schemas/StopSaleCheckResult.yaml
+      '422':
+        $ref: ../components/responses/UnprocessableEntity.yaml
+      '404':
+        $ref: ../components/responses/NotFound.yaml

@@ -1,0 +1,40 @@
+type: object
+description: |
+  ISO 4217 currency reference (mirrors the `currencies` table, see
+  `docs/16-multi-currency-design.md` §3.1).
+required:
+  - code
+  - name
+  - symbol
+  - decimal_places
+properties:
+  code:
+    type: string
+    pattern: ^[A-Z]{3}$
+    description: ISO 4217 alphabetic code.
+    example: TRY
+  name:
+    type: string
+    description: English display name.
+    example: Turkish Lira
+  symbol:
+    type: string
+    description: Currency symbol (graphical).
+    example: "₺"
+  symbol_position:
+    type: string
+    enum:
+      - before
+      - after
+    default: before
+    example: before
+  decimal_places:
+    type: integer
+    minimum: 0
+    maximum: 8
+    description: Number of fractional digits used in display.
+    example: 2
+  is_active:
+    type: boolean
+    default: true
+    example: true

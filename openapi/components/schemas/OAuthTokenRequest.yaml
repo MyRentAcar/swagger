@@ -1,0 +1,27 @@
+type: object
+description: |
+  RFC 6749 §4.4 client_credentials request payload, sent as
+  `application/x-www-form-urlencoded`. Encapsulated here so generated
+  client SDKs see a typed shape.
+required:
+  - grant_type
+  - client_id
+  - client_secret
+properties:
+  grant_type:
+    type: string
+    enum:
+      - client_credentials
+    example: client_credentials
+  client_id:
+    type: string
+    description: OAuth client id issued at partner onboarding.
+    example: 9d3b2e3a-91a6-4f9c-9c9b-3a1f1c8b6c0a
+  client_secret:
+    type: string
+    format: password
+    example: 8f4d61b2c8...
+  scope:
+    type: string
+    description: Space-separated list of requested scopes.
+    example: availability:read reservations:write

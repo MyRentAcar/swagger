@@ -1,0 +1,15 @@
+description: |
+  Unexpected server error. The response includes a Sentry-correlation
+  identifier in `instance` and never surfaces stack traces in
+  production.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Error.yaml
+    example:
+      type: https://docs.example.com/api/v1/errors/internal
+      title: Internal Server Error
+      status: 500
+      detail: An unexpected error occurred. Please retry.
+      instance: urn:sentry:event:7b8a3c2d
+      code: internal_error

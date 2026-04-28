@@ -1,0 +1,28 @@
+type: object
+description: |
+  Marketing class / category for a vehicle (mirrors
+  `vehicle_categories`, see `docs/03-database-schema.md` §4.1).
+  Tenant-scoped.
+required:
+  - id
+  - code
+  - name
+properties:
+  id:
+    type: integer
+    format: int64
+    example: 3
+  code:
+    type: string
+    description: Tenant-internal class code.
+    example: ECONOMY
+  name:
+    type: string
+    example: Economy
+  acriss_code:
+    type: string
+    description: Optional ACRISS classification (e.g. `ECMN`).
+    example: ECMN
+  sort_order:
+    type: integer
+    default: 0

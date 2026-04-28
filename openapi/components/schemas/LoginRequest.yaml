@@ -1,0 +1,26 @@
+type: object
+description: |
+  End-user login (Sanctum). HMAC headers and tenant header are still
+  required. Web traffic additionally carries `X-Turnstile-Token`.
+required:
+  - email
+  - password
+properties:
+  email:
+    type: string
+    format: email
+    example: user@example.com
+  password:
+    type: string
+    minLength: 12
+    maxLength: 255
+    format: password
+    example: S3cret!Pass1234
+  device_name:
+    type: string
+    maxLength: 120
+    description: Free-form device label persisted on the access token.
+    example: iPhone 15 Pro
+  remember:
+    type: boolean
+    default: false

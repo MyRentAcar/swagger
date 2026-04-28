@@ -1,0 +1,27 @@
+type: object
+description: |
+  One-way drop fee from a pickup location to a different drop-off
+  location (see `docs/03-database-schema.md` §7).
+required:
+  - pickup_location_id
+  - dropoff_location_id
+  - fee
+properties:
+  id:
+    type: integer
+    format: int64
+    example: 21
+  pickup_location_id:
+    type: integer
+    format: int64
+    example: 10
+  dropoff_location_id:
+    type: integer
+    format: int64
+    example: 11
+  fee:
+    $ref: ./Money.yaml
+  is_unlimited:
+    type: boolean
+    default: false
+    description: When true, the route is supported but billed via custom rule.

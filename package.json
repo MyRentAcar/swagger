@@ -1,0 +1,23 @@
+{
+  "name": "@rentacar/swagger",
+  "version": "1.0.0-skeleton",
+  "private": true,
+  "description": "OpenAPI 3.1 contract for the Rent A Car SaaS platform (multi-tenant API).",
+  "license": "UNLICENSED",
+  "scripts": {
+    "lint": "redocly lint openapi/openapi.yaml",
+    "bundle": "redocly bundle openapi/openapi.yaml -o dist/openapi.bundled.yaml",
+    "bundle:json": "redocly bundle openapi/openapi.yaml -o dist/openapi.bundled.json",
+    "validate": "swagger-cli validate openapi/openapi.yaml",
+    "preview": "redocly preview-docs openapi/openapi.yaml --port 8080",
+    "build": "npm run lint && npm run bundle && npm run bundle:json",
+    "stats": "redocly stats openapi/openapi.yaml"
+  },
+  "devDependencies": {
+    "@redocly/cli": "^1.25.0",
+    "swagger-cli": "^4.0.4"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

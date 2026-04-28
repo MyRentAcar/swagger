@@ -1,0 +1,34 @@
+me:
+  get:
+    operationId: tenants.me
+    summary: Read the current tenant configuration
+    description: |
+      Returns the public projection of the tenant resolved from the
+      request (see `docs/02-architecture.md` §2.2). Used by the
+      storefront to render branding, locale and currency selectors.
+      Public — no Sanctum bearer required, but HMAC and the tenant
+      header are mandatory.
+    tags: [Tenants]
+    security:
+      - hmacAuth: []
+    parameters:
+      - $ref: ../components/parameters/XTenantId.yaml
+      - $ref: ../components/parameters/XAppId.yaml
+      - $ref: ../components/parameters/XTimestamp.yaml
+      - $ref: ../components/parameters/XNonce.yaml
+      - $ref: ../components/parameters/XSignature.yaml
+      - $ref: ../components/parameters/XApiVersion.yaml
+      - $ref: ../components/parameters/AcceptLanguage.yaml
+    responses:
+      '200':
+        description: Tenant configuration.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: ../components/schemas/Tenant.yaml
+      '404':
+        $ref: ../components/responses/NotFound.yaml

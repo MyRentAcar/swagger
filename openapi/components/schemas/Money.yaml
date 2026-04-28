@@ -1,0 +1,40 @@
+type: object
+description: |
+  Monetary value envelope. `amount` is always emitted as a string to
+  avoid IEEE-754 rounding on the wire; clients must parse with a
+  decimal library. `display_*` fields are present when the response
+  has been converted to the request's display currency.
+required:
+  - amount
+  - currency
+properties:
+  amount:
+    type: string
+    pattern: ^-?\d+(\.\d{1,8})?$
+    description: Decimal amount in the storage currency.
+    example: "2700.00"
+  currency:
+    type: string
+    pattern: ^[A-Z]{3}$
+    description: ISO 4217 storage currency (tenant default).
+    example: TRY
+  display_amount:
+    type: string
+    pattern: ^-?\d+(\.\d{1,8})?$
+    description: Decimal amount in the requested display currency.
+    example: "82.13"
+  display_currency:
+    type: string
+    pattern: ^[A-Z]{3}$
+    description: ISO 4217 display currency.
+    example: EUR
+  display_rate:
+    type: string
+    pattern: ^\d+(\.\d{1,8})?$
+    description: Cross-rate snapshot used (`1 storage = display_rate * display`).
+    example: "32.8841"
+  display_rate_at:
+    type: string
+    format: date-time
+    description: Timestamp of the rate snapshot (TCMB-sourced).
+    example: 2026-04-28T10:30:00Z

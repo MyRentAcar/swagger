@@ -1,0 +1,28 @@
+type: object
+description: |
+  Cursor-based pagination metadata. The server emits this object as
+  `meta.pagination` on every list response.
+required:
+  - limit
+  - count
+properties:
+  limit:
+    type: integer
+    description: Page size requested (capped server-side at 100).
+    example: 25
+  count:
+    type: integer
+    description: Number of items returned in this page.
+    example: 25
+  next_cursor:
+    type: [string, "null"]
+    description: Opaque cursor for the next page; null when this is the last page.
+    example: eyJpZCI6MTIzNDV9
+  prev_cursor:
+    type: [string, "null"]
+    description: Opaque cursor for the previous page; null on first page.
+    example: null
+  has_more:
+    type: boolean
+    description: Convenience flag, equivalent to `next_cursor != null`.
+    example: true

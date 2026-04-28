@@ -1,0 +1,52 @@
+type: object
+description: |
+  Physical vehicle (plate-level), fulfilling a `Vehicle` template.
+  Mirrors `vehicle_units` (`docs/03-database-schema.md` §4.5).
+  Plate-level data is hidden from public B2C/B2B responses; this
+  schema is used by tenant operations and B2B partner reservation
+  detail responses where the tenant has opted in.
+required:
+  - id
+  - vehicle_id
+  - plate_number
+  - status
+properties:
+  id:
+    type: integer
+    format: int64
+    example: 142
+  vehicle_id:
+    type: integer
+    format: int64
+    example: 42
+  plate_number:
+    type: string
+    example: 34 AB 1234
+  color:
+    type: [string, "null"]
+    example: White
+  year:
+    type: [integer, "null"]
+    minimum: 1980
+    maximum: 2100
+    example: 2024
+  vin:
+    type: [string, "null"]
+    example: VF15RBL0H67890123
+  current_km:
+    type: integer
+    minimum: 0
+    example: 14523
+  current_location_id:
+    type: [integer, "null"]
+    format: int64
+    example: 10
+  status:
+    type: string
+    enum:
+      - available
+      - rented
+      - maintenance
+      - stop_sale
+      - retired
+    example: available

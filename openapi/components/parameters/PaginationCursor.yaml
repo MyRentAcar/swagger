@@ -1,0 +1,12 @@
+name: cursor
+in: query
+required: false
+description: |
+  Opaque cursor returned in the previous response's `meta.next_cursor`.
+  Cursor pagination is preferred over offset for stable ordering on
+  multi-tenant high-write tables (see `docs/03-database-schema.md`
+  index strategy).
+schema:
+  type: string
+  maxLength: 256
+  example: eyJpZCI6MTIzNDV9

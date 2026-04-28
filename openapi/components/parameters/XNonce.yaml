@@ -1,0 +1,11 @@
+name: X-Nonce
+in: header
+required: true
+description: |
+  Single-use ULID (26 chars) per request. The server caches the nonce
+  for 600 seconds and rejects replays. See
+  `docs/08-api-security.md` §6.3.
+schema:
+  type: string
+  pattern: ^[0-9A-HJKMNP-TV-Z]{26}$
+  example: 01HXYZABC123DEF456GHJ7K9MN

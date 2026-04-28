@@ -1,0 +1,47 @@
+type: object
+description: |
+  Result of a three-level stop-sale availability check for a given
+  vehicle (and optionally vehicle unit) over a date range. The check
+  evaluates `plate` → `vehicle` → `global` in that precedence order
+  (see `docs/06-stop-sale-design.md` and `docs/03-database-schema.md`
+  §5.3).
+required:
+  - is_blocked
+  - vehicle_id
+  - from
+  - to
+properties:
+  is_blocked:
+    type: boolean
+    description: True when at least one stop-sale rule applies.
+    example: true
+  blocked_by:
+    type: [string, "null"]
+    enum:
+      - plate
+      - vehicle
+      - global
+      - null
+    description: Highest-priority scope that matched, null if `is_blocked` is false.
+    example: vehicle
+  vehicle_id:
+    type: integer
+    format: int64
+    example: 42
+  vehicle_unit_id:
+    type: [integer, "null"]
+    format: int64
+    example: null
+  from:
+    type: string
+    format: date-time
+    example: 2026-05-01T10:00:00Z
+  to:
+    type: string
+    format: date-time
+    example: 2026-05-04T10:00:00Z
+  matches:
+    type: array
+    description: All matching stop-sale rules (debug-friendly listing).
+    items:
+      $ref: ./StopSale.yaml

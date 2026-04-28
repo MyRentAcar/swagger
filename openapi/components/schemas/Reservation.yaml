@@ -1,0 +1,110 @@
+type: object
+description: |
+  Reservation aggregate (mirrors `reservations`,
+  `docs/03-database-schema.md` §10.2). Money fields are emitted in
+  storage currency with display-currency conversion (when the
+  request's `X-Display-Currency` header is set).
+required:
+  - id
+  - reservation_code
+  - status
+  - payment_status
+  - pickup_at
+  - dropoff_at
+  - currency
+  - grand_total
+properties:
+  id:
+    type: integer
+    format: int64
+    example: 123456
+  reservation_code:
+    type: string
+    description: Tenant-internal human-readable code.
+    example: RES-2026-04-AB12CD
+  external_ref:
+    type: [string, "null"]
+    description: Caller-provided correlation id (B2B partner reference).
+    example: AGN-2026-04-12345
+  customer:
+    $ref: ./Customer.yaml
+  vehicle:
+    $ref: ./Vehicle.yaml
+  vehicle_unit:
+    oneOf:
+      - $ref: ./VehicleUnit.yaml
+      - type: "null"
+    description: Assigned plate; null until pickup-day allocation.
+  pickup_location:
+    $ref: ./Location.yaml
+  dropoff_location:
+    $ref: ./Location.yaml
+  pickup_at:
+    type: string
+    format: date-time
+    example: 2026-05-10T10:00:00Z
+  dropoff_at:
+    type: string
+    format: date-time
+    example: 2026-05-13T10:00:00Z
+  total_days:
+    type: integer
+    minimum: 1
+    example: 3
+  base_price:
+    $ref: ./Money.yaml
+  drop_fee:
+    $ref: ./Money.yaml
+  extras_total:
+    $ref: ./Money.yaml
+  insurance_total:
+    $ref: ./Money.yaml
+  discount_total:
+    $ref: ./Money.yaml
+  tax_total:
+    $ref: ./Money.yaml
+  grand_total:
+    $ref: ./Money.yaml
+  currency:
+    type: string
+    pattern: ^[A-Z]{3}$
+    description: Storage currency (tenant default at creation time).
+    example: TRY
+  status:
+    type: string
+    enum:
+      - pending
+      - confirmed
+      - picked_up
+      - returned
+      - cancelled
+      - no_show
+    example: confirmed
+  payment_status:
+    type: string
+    enum:
+      - unpaid
+      - partial
+      - paid
+      - refunded
+    example: paid
+  source_channel:
+    type: string
+    enum:
+      - web
+      - admin
+      - api
+      - mobile
+      - partner
+      - phone
+    example: web
+  created_at:
+    type: string
+    format: date-time
+    readOnly: true
+  cancelled_at:
+    type: [string, "null"]
+    format: date-time
+    readOnly: true
+  cancellation_reason:
+    type: [string, "null"]

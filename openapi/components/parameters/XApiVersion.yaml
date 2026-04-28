@@ -1,0 +1,13 @@
+name: X-Api-Version
+in: header
+required: false
+description: |
+  Numeric API major version. Path versioning (`/v1`, `/v2`) is the
+  primary mechanism; this header is a fallback used during the 6-month
+  deprecation overlap defined in ADR-009 and `docs/02-architecture.md`
+  §4.2.
+schema:
+  type: integer
+  minimum: 1
+  default: 1
+  example: 1

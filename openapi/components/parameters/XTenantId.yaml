@@ -1,0 +1,20 @@
+name: X-Tenant-ID
+in: header
+required: true
+description: |
+  Active tenant for this request. Enforced by the `IdentifyTenant`
+  middleware (see `docs/02-architecture.md` §2.2). Resolution order on
+  the server is:
+
+    1. `Host` header (subdomain or `tenants.custom_domain`).
+    2. This `X-Tenant-ID` header.
+    3. Authenticated user's `tenant_id` (fallback).
+    4. `X-Impersonate-Tenant` (super-admin only).
+
+  Required for every API call except super-admin platform endpoints.
+  Cross-tenant requests return zero rows by design (Eloquent global
+  scope), so a wrong value never leaks data.
+schema:
+  type: string
+  pattern: ^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$
+  example: acme-rent-a-car

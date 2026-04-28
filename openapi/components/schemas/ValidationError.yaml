@@ -1,0 +1,22 @@
+allOf:
+  - $ref: ./Error.yaml
+  - type: object
+    required:
+      - errors
+    properties:
+      errors:
+        type: object
+        description: |
+          Map of field name to the list of validation messages that
+          failed for that field. Field names follow request body /
+          query parameter dot-notation (e.g. `customer.email`,
+          `extras.0.id`).
+        additionalProperties:
+          type: array
+          items:
+            type: string
+        example:
+          pickup_at:
+            - The pickup_at field must be a valid ISO 8601 datetime in the future.
+          dropoff_at:
+            - The dropoff_at field must be after pickup_at.

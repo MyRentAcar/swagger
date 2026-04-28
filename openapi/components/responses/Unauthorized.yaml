@@ -1,0 +1,17 @@
+description: |
+  Authentication failed at one of the layers (HMAC, Sanctum bearer, or
+  Passport bearer). The `code` field distinguishes the cause:
+  `missing_security_headers`, `timestamp_out_of_window`, `nonce_replay`,
+  `invalid_app`, `invalid_signature`, `invalid_credentials`,
+  `token_expired`, `token_revoked`.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Error.yaml
+    example:
+      type: https://docs.example.com/api/v1/errors/unauthorized
+      title: Unauthorized
+      status: 401
+      detail: Authentication required.
+      instance: /v1/reservations
+      code: invalid_signature

@@ -1,0 +1,35 @@
+type: object
+description: |
+  Monthly B2B partner quota snapshot (mirrors `b2b_quotas`,
+  `docs/15-b2b-agency-design.md` §4.2).
+required:
+  - partner_id
+  - period
+  - reservation_limit
+  - reservation_used
+properties:
+  partner_id:
+    type: integer
+    format: int64
+    example: 42
+  period:
+    type: string
+    pattern: ^\d{4}-(0[1-9]|1[0-2])$
+    description: Period in `YYYY-MM` form.
+    example: 2026-04
+  reservation_limit:
+    type: integer
+    description: Maximum reservations allowed in this period.
+    example: 1000
+  reservation_used:
+    type: integer
+    description: Reservations consumed in this period.
+    example: 327
+  reservation_remaining:
+    type: integer
+    description: "`reservation_limit - reservation_used`, never negative."
+    example: 673
+  rate_limit_per_minute:
+    type: integer
+    description: Per-partner rate-limit tier (`b2b_partners.rate_limit_tier_minute`).
+    example: 60

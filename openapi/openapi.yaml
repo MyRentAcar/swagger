@@ -1,0 +1,221 @@
+openapi: 3.1.0
+info:
+  title: Rent A Car SaaS Platform API
+  version: 1.0.0-skeleton
+  summary: Multi-tenant rent-a-car SaaS API contract.
+  description: |
+    Public, B2B and end-user surface of the multi-tenant rent-a-car SaaS platform.
+
+    This document is the canonical machine-readable contract used by:
+      - the Laravel monolith API (annotation-driven generation, see ADR-009),
+      - the Next.js storefront and Cloudflare Worker proxy (frontend),
+      - the iOS and Android mobile clients,
+      - B2B agency partners (OAuth `client_credentials` clients).
+
+    All requests are subject to the layered security model documented in
+    `docs/08-api-security.md`. In short:
+      - **Layer 0/1**: TLS 1.3 + Cloudflare WAF.
+      - **Layer 2 — App Identity (HMAC)**: every request carries `X-App-Id`,
+        `X-Timestamp`, `X-Nonce`, `X-Signature` and is verified server-side.
+      - **Layer 3 — Rate limit**: multi-dimensional (IP, app, user, tenant).
+      - **Layer 4 — User auth**: Sanctum bearer for end-users (web/mobile),
+        Passport `client_credentials` for B2B partners.
+      - **Layer 5 — Authorization**: tenant scope + policy.
+      - **Layer 6 — Input validation**: FormRequest + RFC 7807 errors.
+
+    Multi-tenancy is enforced via the `X-Tenant-ID` header (or the `Host`
+    subdomain/custom domain on public web traffic). The active tenant scopes
+    every read and write at the ORM layer.
+
+    Multi-currency follows the "store in tenant default, display in user
+    currency" model (see `docs/16-multi-currency-design.md` and ADR-012):
+    storage values use `tenant.currency_default`; display values are emitted
+    in the currency requested via `X-Display-Currency` (or the user
+    preference) with the cross-rate snapshot included in the envelope.
+
+    Localization follows `Accept-Language` (`tr`, `en`, `de`, `ru`, `ar`),
+    see `docs/09-localization.md`.
+  termsOfService: https://example.com/legal/terms
+  contact:
+    name: Platform API Team
+    email: api@example.com
+    url: https://docs.example.com/api/v1
+  license:
+    name: Proprietary
+    url: https://example.com/legal/api-license
+
+servers:
+  - url: https://api.siteadi.com/v1
+    description: Production (Türkiye data residency, see ADR-014)
+  - url: https://staging.api.siteadi.com/v1
+    description: Staging
+  - url: http://localhost:8000/api/v1
+    description: Local development
+
+tags:
+  - name: Auth
+    description: End-user authentication (Sanctum). Login, refresh, logout.
+  - name: Vehicles
+    description: Vehicle catalog browsing and lookup.
+  - name: Search
+    description: Cross-fleet availability and pricing search.
+  - name: Reservations
+    description: End-user reservation lifecycle.
+  - name: Tenants
+    description: Current tenant configuration (branding, currency, locale).
+  - name: Currencies
+    description: Display currencies and current cross-rates (TCMB-sourced).
+  - name: Locations
+    description: Pickup and drop-off offices with one-way drop fees.
+  - name: StopSale
+    description: Three-level stop-sale availability check (plate, vehicle, global).
+  - name: B2B Agency
+    description: B2B agency partner channel (Passport client_credentials).
+
+security:
+  - hmacAuth: []
+
+paths:
+  /auth/login:
+    $ref: ./paths/auth.yaml#/login
+  /auth/refresh:
+    $ref: ./paths/auth.yaml#/refresh
+  /auth/logout:
+    $ref: ./paths/auth.yaml#/logout
+
+  /vehicles:
+    $ref: ./paths/vehicles.yaml#/list
+  /vehicles/{vehicleId}:
+    $ref: ./paths/vehicles.yaml#/byId
+  /vehicles/{vehicleId}/availability:
+    $ref: ./paths/vehicles.yaml#/availability
+
+  /search/availability:
+    $ref: ./paths/search.yaml#/availability
+
+  /reservations:
+    $ref: ./paths/reservations.yaml#/collection
+  /reservations/{reservationId}:
+    $ref: ./paths/reservations.yaml#/byId
+  /reservations/{reservationId}/cancel:
+    $ref: ./paths/reservations.yaml#/cancel
+
+  /tenants/me:
+    $ref: ./paths/tenants.yaml#/me
+
+  /currencies/rates:
+    $ref: ./paths/currencies.yaml#/rates
+
+  /locations:
+    $ref: ./paths/locations.yaml#/list
+
+  /stop-sale/check:
+    $ref: ./paths/stop-sale.yaml#/check
+
+  /agency/oauth/token:
+    $ref: ./paths/b2b-agency.yaml#/oauthToken
+  /agency/quota:
+    $ref: ./paths/b2b-agency.yaml#/quota
+  /agency/reservations:
+    $ref: ./paths/b2b-agency.yaml#/reservations
+
+components:
+  securitySchemes:
+    sanctumBearer:
+      $ref: ./components/securitySchemes/sanctumBearer.yaml
+    hmacAuth:
+      $ref: ./components/securitySchemes/hmacAuth.yaml
+    passportOAuth:
+      $ref: ./components/securitySchemes/passportOAuth.yaml
+
+  parameters:
+    XTenantId:
+      $ref: ./components/parameters/XTenantId.yaml
+    XDisplayCurrency:
+      $ref: ./components/parameters/XDisplayCurrency.yaml
+    XAppId:
+      $ref: ./components/parameters/XAppId.yaml
+    XTimestamp:
+      $ref: ./components/parameters/XTimestamp.yaml
+    XNonce:
+      $ref: ./components/parameters/XNonce.yaml
+    XSignature:
+      $ref: ./components/parameters/XSignature.yaml
+    XApiVersion:
+      $ref: ./components/parameters/XApiVersion.yaml
+    AcceptLanguage:
+      $ref: ./components/parameters/AcceptLanguage.yaml
+    IdempotencyKey:
+      $ref: ./components/parameters/IdempotencyKey.yaml
+    PaginationCursor:
+      $ref: ./components/parameters/PaginationCursor.yaml
+    PaginationLimit:
+      $ref: ./components/parameters/PaginationLimit.yaml
+
+  responses:
+    BadRequest:
+      $ref: ./components/responses/BadRequest.yaml
+    Unauthorized:
+      $ref: ./components/responses/Unauthorized.yaml
+    Forbidden:
+      $ref: ./components/responses/Forbidden.yaml
+    NotFound:
+      $ref: ./components/responses/NotFound.yaml
+    UnprocessableEntity:
+      $ref: ./components/responses/UnprocessableEntity.yaml
+    TooManyRequests:
+      $ref: ./components/responses/TooManyRequests.yaml
+    InternalServerError:
+      $ref: ./components/responses/InternalServerError.yaml
+
+  schemas:
+    Error:
+      $ref: ./components/schemas/Error.yaml
+    ValidationError:
+      $ref: ./components/schemas/ValidationError.yaml
+    PaginationMeta:
+      $ref: ./components/schemas/PaginationMeta.yaml
+    Money:
+      $ref: ./components/schemas/Money.yaml
+    Currency:
+      $ref: ./components/schemas/Currency.yaml
+    ExchangeRate:
+      $ref: ./components/schemas/ExchangeRate.yaml
+    Tenant:
+      $ref: ./components/schemas/Tenant.yaml
+    Customer:
+      $ref: ./components/schemas/Customer.yaml
+    Location:
+      $ref: ./components/schemas/Location.yaml
+    DropFee:
+      $ref: ./components/schemas/DropFee.yaml
+    VehicleClass:
+      $ref: ./components/schemas/VehicleClass.yaml
+    Vehicle:
+      $ref: ./components/schemas/Vehicle.yaml
+    VehicleUnit:
+      $ref: ./components/schemas/VehicleUnit.yaml
+    PricingRule:
+      $ref: ./components/schemas/PricingRule.yaml
+    StopSale:
+      $ref: ./components/schemas/StopSale.yaml
+    StopSaleCheckResult:
+      $ref: ./components/schemas/StopSaleCheckResult.yaml
+    Reservation:
+      $ref: ./components/schemas/Reservation.yaml
+    ReservationCreateRequest:
+      $ref: ./components/schemas/ReservationCreateRequest.yaml
+    AvailabilityRequest:
+      $ref: ./components/schemas/AvailabilityRequest.yaml
+    AvailabilityOffer:
+      $ref: ./components/schemas/AvailabilityOffer.yaml
+    LoginRequest:
+      $ref: ./components/schemas/LoginRequest.yaml
+    LoginResponse:
+      $ref: ./components/schemas/LoginResponse.yaml
+    OAuthTokenRequest:
+      $ref: ./components/schemas/OAuthTokenRequest.yaml
+    OAuthTokenResponse:
+      $ref: ./components/schemas/OAuthTokenResponse.yaml
+    AgencyQuota:
+      $ref: ./components/schemas/AgencyQuota.yaml

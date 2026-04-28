@@ -1,0 +1,12 @@
+name: limit
+in: query
+required: false
+description: |
+  Maximum items returned in this page. Server enforces a hard ceiling
+  of 100 even if a higher value is requested.
+schema:
+  type: integer
+  minimum: 1
+  maximum: 100
+  default: 25
+  example: 25

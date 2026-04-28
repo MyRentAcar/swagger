@@ -1,0 +1,62 @@
+rates:
+  get:
+    operationId: currencies.rates
+    summary: Get the currently active cross-rates
+    description: |
+      Returns the latest currency rates the platform has cached
+      (TCMB-sourced for `TRY`, see `docs/16-multi-currency-design.md`
+      §4). Optional `base` and `quote` filter the result; without
+      filters all `valid_until IS NULL` rows are returned.
+    tags: [Currencies]
+    security:
+      - hmacAuth: []
+    parameters:
+      - $ref: ../components/parameters/XTenantId.yaml
+      - $ref: ../components/parameters/XAppId.yaml
+      - $ref: ../components/parameters/XTimestamp.yaml
+      - $ref: ../components/parameters/XNonce.yaml
+      - $ref: ../components/parameters/XSignature.yaml
+      - $ref: ../components/parameters/XApiVersion.yaml
+      - in: query
+        name: base
+        required: false
+        description: Filter by base currency (ISO 4217).
+        schema:
+          type: string
+          pattern: ^[A-Z]{3}$
+        example: TRY
+      - in: query
+        name: quote
+        required: false
+        description: Filter by quote currency (ISO 4217).
+        schema:
+          type: string
+          pattern: ^[A-Z]{3}$
+        example: USD
+    responses:
+      '200':
+        description: Active rates.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/ExchangeRate.yaml
+                meta:
+                  type: object
+                  properties:
+                    fetched_at:
+                      type: string
+                      format: date-time
+                    source:
+                      type: string
+                      enum: [tcmb, ecb, fixer, openexchangerates, manual]
+                    is_stale:
+                      type: boolean
+                      description: True when the freshest rate is older than the staleness threshold (see §4.5).
+      '401':
+        $ref: ../components/responses/Unauthorized.yaml

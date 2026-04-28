@@ -1,0 +1,95 @@
+name: OpenAPI Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: openapi-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint and bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Redocly lint
+        run: npm run lint
+
+      - name: swagger-cli validate
+        run: npm run validate
+
+      - name: Bundle (YAML)
+        run: npm run bundle
+
+      - name: Bundle (JSON)
+        run: npm run bundle:json
+
+      - name: Upload bundled artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-bundled
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
+  breaking-change:
+    name: Detect breaking changes
+    runs-on: ubuntu-latest
+    needs: lint
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 10
+    steps:
+      - name: Checkout (PR head)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Bundle PR spec
+        run: npm run bundle -- -o dist/openapi.head.yaml
+
+      - name: Checkout base branch
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          git worktree add ../base "origin/${{ github.base_ref }}"
+
+      - name: Bundle base spec
+        working-directory: ../base
+        run: |
+          npm ci
+          npx redocly bundle openapi/openapi.yaml -o "${{ github.workspace }}/dist/openapi.base.yaml"
+
+      - name: oasdiff (breaking-only)
+        uses: oasdiff/oasdiff-action/breaking@main
+        with:
+          base: dist/openapi.base.yaml
+          revision: dist/openapi.head.yaml
+          fail-on: ERR

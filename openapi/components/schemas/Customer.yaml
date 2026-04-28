@@ -1,0 +1,85 @@
+type: object
+description: |
+  End customer (B2C) or driver record. Mirrors a subset of `customers`
+  (`docs/03-database-schema.md` §10.1). PII is redacted in list views;
+  the full record is only returned on owned reservations.
+required:
+  - first_name
+  - last_name
+  - email
+  - phone
+properties:
+  id:
+    type: integer
+    format: int64
+    readOnly: true
+    example: 4711
+  first_name:
+    type: string
+    minLength: 1
+    maxLength: 80
+    example: John
+  last_name:
+    type: string
+    minLength: 1
+    maxLength: 80
+    example: Doe
+  email:
+    type: string
+    format: email
+    example: john.doe@example.com
+  phone:
+    type: string
+    description: E.164 phone number.
+    pattern: ^\+[1-9]\d{6,14}$
+    example: "+905551234567"
+  national_id:
+    type: string
+    description: TCKN or passport number; tenant-level secret.
+    minLength: 5
+    maxLength: 30
+    example: "12345678901"
+  birth_date:
+    type: string
+    format: date
+    example: 1985-03-15
+  license:
+    type: object
+    properties:
+      number:
+        type: string
+        example: X9876543
+      country:
+        type: string
+        pattern: ^[A-Z]{2}$
+        example: TR
+      issued_at:
+        type: string
+        format: date
+        example: 2010-04-01
+      expires_at:
+        type: string
+        format: date
+        example: 2030-04-01
+  address:
+    type: [object, "null"]
+    properties:
+      line1:
+        type: string
+        example: Bagdat Cad. No:101
+      line2:
+        type: [string, "null"]
+      city:
+        type: string
+        example: Istanbul
+      postal_code:
+        type: string
+        example: "34728"
+      country:
+        type: string
+        pattern: ^[A-Z]{2}$
+        example: TR
+  kvkk_consent_at:
+    type: [string, "null"]
+    format: date-time
+    description: Timestamp when the KVKK consent text was accepted.

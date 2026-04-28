@@ -1,0 +1,74 @@
+type: object
+description: |
+  Pricing rule applied to a vehicle/class for a given window or
+  duration band (mirrors `pricing_rules`,
+  `docs/03-database-schema.md` §6.1; precedence algorithm in §6.4).
+required:
+  - id
+  - scope
+  - daily_rate
+properties:
+  id:
+    type: integer
+    format: int64
+    example: 1234
+  scope:
+    type: string
+    enum:
+      - vehicle
+      - vehicle_class
+      - tenant_default
+    description: |
+      Which entity this rule applies to. Resolution is most-specific-first
+      (vehicle → class → tenant default).
+    example: vehicle
+  vehicle_id:
+    type: [integer, "null"]
+    format: int64
+    example: 42
+  vehicle_class_id:
+    type: [integer, "null"]
+    format: int64
+    example: 3
+  season_id:
+    type: [integer, "null"]
+    format: int64
+    description: Optional season (`pricing_seasons`).
+    example: 9
+  min_days:
+    type: integer
+    minimum: 1
+    example: 1
+  max_days:
+    type: [integer, "null"]
+    minimum: 1
+    example: 6
+  daily_rate:
+    $ref: ./Money.yaml
+  weekly_rate:
+    $ref: ./Money.yaml
+  monthly_rate:
+    $ref: ./Money.yaml
+  channel:
+    type: string
+    enum:
+      - all
+      - web
+      - mobile
+      - admin
+      - b2b
+    default: all
+    example: all
+  valid_from:
+    type: [string, "null"]
+    format: date-time
+  valid_until:
+    type: [string, "null"]
+    format: date-time
+  priority:
+    type: integer
+    description: Tie-breaker; higher wins.
+    default: 0
+  is_active:
+    type: boolean
+    default: true

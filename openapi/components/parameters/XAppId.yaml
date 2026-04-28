@@ -1,0 +1,12 @@
+name: X-App-Id
+in: header
+required: true
+description: |
+  Application identifier (HMAC layer). One per client surface (e.g.
+  `webapp-prod`, `ios-prod`, `android-prod`, `b2b-<partner-slug>`).
+  See `docs/08-api-security.md` §6.1.
+schema:
+  type: string
+  minLength: 3
+  maxLength: 64
+  example: webapp-prod

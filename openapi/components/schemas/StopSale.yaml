@@ -1,0 +1,55 @@
+type: object
+description: |
+  Stop-sale record (mirrors `stop_sales`,
+  `docs/03-database-schema.md` §5.1 and `docs/06-stop-sale-design.md`).
+  Three scopes are supported: `global` (whole fleet), `vehicle` (all
+  plates of a type), `plate` (single plate).
+required:
+  - id
+  - scope
+  - is_unlimited
+  - is_active
+properties:
+  id:
+    type: integer
+    format: int64
+    example: 88
+  scope:
+    type: string
+    enum:
+      - vehicle
+      - plate
+      - global
+    example: vehicle
+  vehicle_id:
+    type: [integer, "null"]
+    format: int64
+    description: Required when scope = `vehicle`.
+    example: 42
+  vehicle_unit_id:
+    type: [integer, "null"]
+    format: int64
+    description: Required when scope = `plate`.
+    example: null
+  location_id:
+    type: [integer, "null"]
+    format: int64
+    description: Optional - restrict the stop-sale to one pickup location.
+  starts_at:
+    type: [string, "null"]
+    format: date-time
+    example: 2026-04-29T00:00:00Z
+  ends_at:
+    type: [string, "null"]
+    format: date-time
+    example: 2026-04-30T00:00:00Z
+  is_unlimited:
+    type: boolean
+    description: When true, `starts_at` / `ends_at` are ignored.
+    default: false
+  reason:
+    type: [string, "null"]
+    example: Trade fair fleet allocation
+  is_active:
+    type: boolean
+    default: true

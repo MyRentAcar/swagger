@@ -1,0 +1,14 @@
+name: X-Signature
+in: header
+required: true
+description: |
+  `base64(HMAC-SHA256(app_secret, canonical_string))`. The canonical
+  string is built deterministically from method, path, sorted query,
+  app id, timestamp, nonce and `sha256_hex(body)`. See
+  `docs/08-api-security.md` §6.2 for the exact format.
+schema:
+  type: string
+  format: byte
+  minLength: 44
+  maxLength: 44
+  example: zR7d8KfQGq4mYJ8w3aZ7b1qFqyXvY3y4wY2y0aZ7b1Q=

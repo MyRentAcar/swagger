@@ -1,0 +1,16 @@
+name: Idempotency-Key
+in: header
+required: false
+description: |
+  Client-generated ULID used to make non-idempotent POST requests safe
+  to retry. The server stores `(idempotency_key, request_hash, status,
+  response_body)` for 24 hours and replays the cached response on retry
+  (see `docs/15-b2b-agency-design.md` §6.9).
+
+  Required for `POST /reservations`, `POST /agency/reservations`, and
+  any payment-bearing write. Recommended (and free) for all other
+  POST/PATCH writes.
+schema:
+  type: string
+  pattern: ^[0-9A-HJKMNP-TV-Z]{26}$
+  example: 01HVZ8T3K9QPRX0M4YF6BCDEHJ

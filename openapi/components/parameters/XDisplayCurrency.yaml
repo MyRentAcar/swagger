@@ -1,0 +1,17 @@
+name: X-Display-Currency
+in: header
+required: false
+description: |
+  ISO 4217 currency in which monetary values must be rendered in the
+  response (display layer). Storage values are always written in the
+  tenant default currency and a snapshot of the cross-rate used is
+  included in the response envelope (see ADR-012 and
+  `docs/16-multi-currency-design.md` §5).
+
+  If omitted, the server falls back to: user preference cookie →
+  tenant default → `TRY`. Currencies not in the tenant's
+  `supported_currencies` whitelist are rejected with `422`.
+schema:
+  type: string
+  pattern: ^[A-Z]{3}$
+  example: EUR

@@ -1,0 +1,11 @@
+name: X-Timestamp
+in: header
+required: true
+description: |
+  Unix epoch seconds at the time the client signed the request. Server
+  enforces a ±300 second tolerance window. See
+  `docs/08-api-security.md` §6.3.
+schema:
+  type: string
+  pattern: ^[0-9]{10}$
+  example: "1714312800"

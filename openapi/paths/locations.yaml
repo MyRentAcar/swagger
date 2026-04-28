@@ -1,0 +1,68 @@
+list:
+  get:
+    operationId: locations.list
+    summary: List pickup/drop-off locations for the tenant
+    description: |
+      Paginated list of `locations`. The optional `dropoff_for`
+      parameter expands one-way drop fees against a chosen pickup
+      location.
+    tags: [Locations]
+    security:
+      - hmacAuth: []
+    parameters:
+      - $ref: ../components/parameters/XTenantId.yaml
+      - $ref: ../components/parameters/XAppId.yaml
+      - $ref: ../components/parameters/XTimestamp.yaml
+      - $ref: ../components/parameters/XNonce.yaml
+      - $ref: ../components/parameters/XSignature.yaml
+      - $ref: ../components/parameters/XApiVersion.yaml
+      - $ref: ../components/parameters/XDisplayCurrency.yaml
+      - $ref: ../components/parameters/AcceptLanguage.yaml
+      - $ref: ../components/parameters/PaginationCursor.yaml
+      - $ref: ../components/parameters/PaginationLimit.yaml
+      - in: query
+        name: type
+        required: false
+        description: Filter by location type.
+        schema:
+          type: string
+          enum: [office, airport, hotel, partner, virtual]
+      - in: query
+        name: city_id
+        required: false
+        description: Filter by city.
+        schema:
+          type: integer
+          format: int64
+      - in: query
+        name: dropoff_for
+        required: false
+        schema:
+          type: integer
+          format: int64
+        description: Pickup location id; when set, response items include the matching `drop_fee`.
+    responses:
+      '200':
+        description: Locations page.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    allOf:
+                      - $ref: ../components/schemas/Location.yaml
+                      - type: object
+                        properties:
+                          drop_fee:
+                            $ref: ../components/schemas/DropFee.yaml
+                meta:
+                  type: object
+                  properties:
+                    pagination:
+                      $ref: ../components/schemas/PaginationMeta.yaml
+      '401':
+        $ref: ../components/responses/Unauthorized.yaml

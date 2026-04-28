@@ -1,0 +1,20 @@
+type: apiKey
+in: header
+name: X-Signature
+description: |
+  Application-identity layer: every request must carry the HMAC-SHA256
+  signature of a canonical string built from method, path, sorted query,
+  `X-App-Id`, `X-Timestamp`, `X-Nonce` and `sha256_hex(body)`.
+
+  Although OpenAPI 3.1 only allows a single header to be declared as
+  `apiKey`, this scheme also requires the following request headers, all
+  declared as common parameters and present on every operation:
+
+    - `X-App-Id`     — application identifier (`webapp-prod`, `ios-prod`, ...)
+    - `X-Timestamp`  — unix epoch seconds, ±300s tolerance
+    - `X-Nonce`      — ULID, single-use, replay-protected for 600s
+    - `X-Signature`  — `base64(HMAC-SHA256(app_secret, canonical_string))`
+    - `X-Api-Version`— integer `1` (path versioning fallback)
+
+  Algorithm and exact canonical-string format: `docs/08-api-security.md` §6.2.
+  Server-side verification: `docs/08-api-security.md` §6.3.

@@ -1,0 +1,37 @@
+description: |
+  Rate limit exceeded on one of the dimensions (IP, app, user, tenant,
+  partner). Throttle headers are always returned. See
+  `docs/08-api-security.md` §7.
+headers:
+  X-RateLimit-Limit:
+    description: Maximum requests permitted in the current window.
+    schema:
+      type: integer
+      example: 60
+  X-RateLimit-Remaining:
+    description: Requests remaining in the current window.
+    schema:
+      type: integer
+      example: 0
+  X-RateLimit-Reset:
+    description: Unix epoch seconds at which the window resets.
+    schema:
+      type: integer
+      example: 1714312860
+  Retry-After:
+    description: Seconds the client should wait before retrying.
+    schema:
+      type: integer
+      example: 23
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Error.yaml
+    example:
+      type: https://docs.example.com/api/v1/errors/rate-limit
+      title: Too Many Requests
+      status: 429
+      detail: Too many requests. Retry after 23 seconds.
+      instance: /v1/auth/login
+      code: rate_limit_exceeded
+      retry_after: 23

@@ -1,0 +1,14 @@
+type: http
+scheme: bearer
+bearerFormat: Sanctum personal access token (opaque, format `<id>|<plain_text>`)
+description: |
+  Laravel Sanctum personal access token used for end-user (web SPA, iOS,
+  Android) authentication. Issued by `POST /auth/login` and revoked by
+  `POST /auth/logout`.
+
+  Tokens are opaque strings of the form `<id>|<plain_text>`, default TTL
+  30 days, scoped via Sanctum abilities. The token MUST be combined with
+  the HMAC app-identity headers; bearer alone is never sufficient.
+
+  See `docs/08-api-security.md` §8.1 (Sanctum) and ADR-002 (three-guard
+  authentication strategy).

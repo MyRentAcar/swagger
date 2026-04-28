@@ -1,0 +1,66 @@
+availability:
+  post:
+    operationId: search.availability
+    summary: Search bookable vehicles for a route + window
+    description: |
+      Primary B2C/B2B availability search. The server applies, in
+      order: tenant scope → location validity → stop-sale (3-level,
+      see `docs/06-stop-sale-design.md`) → reservation overlap
+      (`idx_res_tenant_unit_dates`) → pricing precedence
+      (`docs/03-database-schema.md` §6.4). The result includes a
+      short-lived `rate_locked_until`; the same offer can be
+      converted into a reservation with `POST /reservations`.
+    tags: [Search]
+    security:
+      - hmacAuth: []
+    parameters:
+      - $ref: ../components/parameters/XTenantId.yaml
+      - $ref: ../components/parameters/XAppId.yaml
+      - $ref: ../components/parameters/XTimestamp.yaml
+      - $ref: ../components/parameters/XNonce.yaml
+      - $ref: ../components/parameters/XSignature.yaml
+      - $ref: ../components/parameters/XApiVersion.yaml
+      - $ref: ../components/parameters/XDisplayCurrency.yaml
+      - $ref: ../components/parameters/AcceptLanguage.yaml
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AvailabilityRequest.yaml
+    responses:
+      '200':
+        description: Search results.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/AvailabilityOffer.yaml
+                meta:
+                  type: object
+                  properties:
+                    currency:
+                      type: string
+                      pattern: ^[A-Z]{3}$
+                      example: TRY
+                    display_currency:
+                      type: string
+                      pattern: ^[A-Z]{3}$
+                      example: EUR
+                    rate_locked_until:
+                      type: string
+                      format: date-time
+                      example: 2026-04-28T11:30:00Z
+                    pagination:
+                      $ref: ../components/schemas/PaginationMeta.yaml
+      '400':
+        $ref: ../components/responses/BadRequest.yaml
+      '422':
+        $ref: ../components/responses/UnprocessableEntity.yaml
+      '429':
+        $ref: ../components/responses/TooManyRequests.yaml

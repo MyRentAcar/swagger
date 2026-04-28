@@ -1,0 +1,193 @@
+list:
+  get:
+    operationId: vehicles.list
+    summary: List vehicles in the active tenant catalog
+    description: |
+      Returns a paginated catalog of vehicle types (not plates).
+      Filtering and free-text search are supported via query string.
+      This endpoint does not check date-bound availability — use
+      `POST /search/availability` for that.
+    tags: [Vehicles]
+    security:
+      - hmacAuth: []
+    parameters:
+      - $ref: ../components/parameters/XTenantId.yaml
+      - $ref: ../components/parameters/XAppId.yaml
+      - $ref: ../components/parameters/XTimestamp.yaml
+      - $ref: ../components/parameters/XNonce.yaml
+      - $ref: ../components/parameters/XSignature.yaml
+      - $ref: ../components/parameters/XApiVersion.yaml
+      - $ref: ../components/parameters/XDisplayCurrency.yaml
+      - $ref: ../components/parameters/AcceptLanguage.yaml
+      - $ref: ../components/parameters/PaginationCursor.yaml
+      - $ref: ../components/parameters/PaginationLimit.yaml
+      - in: query
+        name: vehicle_class_id
+        required: false
+        schema:
+          type: integer
+          format: int64
+        description: Filter by class id.
+      - in: query
+        name: transmission
+        required: false
+        description: Filter by transmission type.
+        schema:
+          type: string
+          enum: [manual, auto, semi_auto]
+      - in: query
+        name: fuel_type
+        required: false
+        description: Filter by fuel type.
+        schema:
+          type: string
+          enum: [gasoline, diesel, lpg, hybrid, electric]
+      - in: query
+        name: q
+        required: false
+        schema:
+          type: string
+          maxLength: 80
+        description: Free-text search across `display_name`, brand, model.
+    responses:
+      '200':
+        description: Catalog page.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/Vehicle.yaml
+                meta:
+                  type: object
+                  properties:
+                    pagination:
+                      $ref: ../components/schemas/PaginationMeta.yaml
+      '400':
+        $ref: ../components/responses/BadRequest.yaml
+      '401':
+        $ref: ../components/responses/Unauthorized.yaml
+      '429':
+        $ref: ../components/responses/TooManyRequests.yaml
+
+byId:
+  parameters:
+    - in: path
+      name: vehicleId
+      required: true
+      description: Vehicle template id (the rentable "type", not a plate).
+      schema:
+        type: integer
+        format: int64
+      example: 42
+  get:
+    operationId: vehicles.show
+    summary: Get a single vehicle (catalog detail)
+    description: |
+      Returns the catalog projection of one vehicle template. Plate-level
+      data is hidden from this surface; use the operations team backoffice
+      for plate detail.
+    tags: [Vehicles]
+    security:
+      - hmacAuth: []
+    parameters:
+      - $ref: ../components/parameters/XTenantId.yaml
+      - $ref: ../components/parameters/XAppId.yaml
+      - $ref: ../components/parameters/XTimestamp.yaml
+      - $ref: ../components/parameters/XNonce.yaml
+      - $ref: ../components/parameters/XSignature.yaml
+      - $ref: ../components/parameters/XApiVersion.yaml
+      - $ref: ../components/parameters/XDisplayCurrency.yaml
+      - $ref: ../components/parameters/AcceptLanguage.yaml
+    responses:
+      '200':
+        description: Vehicle detail.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: ../components/schemas/Vehicle.yaml
+      '404':
+        $ref: ../components/responses/NotFound.yaml
+
+availability:
+  parameters:
+    - in: path
+      name: vehicleId
+      required: true
+      description: Vehicle template id to check.
+      schema:
+        type: integer
+        format: int64
+  get:
+    operationId: vehicles.availability
+    summary: Per-vehicle availability and pricing for a date window
+    description: |
+      Convenience endpoint used by the "vehicle detail" page. Returns
+      one offer or null if the vehicle is not bookable for the
+      requested window. For multi-vehicle queries use
+      `POST /search/availability`.
+    tags: [Vehicles]
+    security:
+      - hmacAuth: []
+    parameters:
+      - $ref: ../components/parameters/XTenantId.yaml
+      - $ref: ../components/parameters/XAppId.yaml
+      - $ref: ../components/parameters/XTimestamp.yaml
+      - $ref: ../components/parameters/XNonce.yaml
+      - $ref: ../components/parameters/XSignature.yaml
+      - $ref: ../components/parameters/XApiVersion.yaml
+      - $ref: ../components/parameters/XDisplayCurrency.yaml
+      - $ref: ../components/parameters/AcceptLanguage.yaml
+      - in: query
+        name: pickup_at
+        required: true
+        description: Pickup datetime (ISO 8601, tenant TZ or UTC).
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: dropoff_at
+        required: true
+        description: Drop-off datetime, must be strictly after `pickup_at`.
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: pickup_location_id
+        required: true
+        description: Pickup location id.
+        schema:
+          type: integer
+          format: int64
+      - in: query
+        name: dropoff_location_id
+        required: true
+        description: Drop-off location id.
+        schema:
+          type: integer
+          format: int64
+    responses:
+      '200':
+        description: Availability and pricing for this vehicle.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  oneOf:
+                    - $ref: ../components/schemas/AvailabilityOffer.yaml
+                    - type: 'null'
+      '404':
+        $ref: ../components/responses/NotFound.yaml
+      '422':
+        $ref: ../components/responses/UnprocessableEntity.yaml

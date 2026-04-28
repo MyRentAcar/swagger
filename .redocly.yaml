@@ -1,0 +1,43 @@
+extends:
+  - recommended
+
+apis:
+  rentacar@v1:
+    root: openapi/openapi.yaml
+
+rules:
+  # Stable contract hygiene
+  operation-operationId: error
+  operation-operationId-unique: error
+  operation-operationId-url-safe: error
+  operation-summary: error
+  operation-tag-defined: error
+  tag-description: warn
+
+  # Description discipline
+  info-contact: warn
+  info-license: warn
+  operation-description: warn
+  parameter-description: warn
+
+  # Schema rigor
+  no-unused-components: warn
+  no-ambiguous-paths: error
+  no-path-trailing-slash: error
+  path-declaration-must-exist: error
+  path-not-include-query: error
+  path-parameters-defined: error
+
+  # Response coverage — 2xx + at least 401/422 on writes is enforced by review,
+  # not by lint, because skeleton stubs intentionally omit some 4xx until the
+  # implementing PR fleshes them out.
+  operation-4xx-response: warn
+  operation-2xx-response: error
+  no-undefined-server-variable: error
+  no-server-example.com: off
+
+  # Security
+  security-defined: error
+
+  # Naming consistency
+  paths-kebab-case: error

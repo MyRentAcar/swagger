@@ -1,0 +1,106 @@
+login:
+  post:
+    operationId: auth.login
+    summary: End-user login (Sanctum)
+    description: |
+      Authenticates an end user and issues a Sanctum personal access
+      token. Subject to the `auth` rate-limit tier (5/min per IP,
+      3/min per email — see `docs/08-api-security.md` §7.2). Always
+      runs the password hash check, even on unknown email, to keep
+      the response time constant.
+    tags: [Auth]
+    security:
+      - hmacAuth: []
+    parameters:
+      - $ref: ../components/parameters/XTenantId.yaml
+      - $ref: ../components/parameters/XAppId.yaml
+      - $ref: ../components/parameters/XTimestamp.yaml
+      - $ref: ../components/parameters/XNonce.yaml
+      - $ref: ../components/parameters/XSignature.yaml
+      - $ref: ../components/parameters/XApiVersion.yaml
+      - $ref: ../components/parameters/AcceptLanguage.yaml
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/LoginRequest.yaml
+    responses:
+      '200':
+        description: Login succeeded (or 2FA challenge issued).
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/LoginResponse.yaml
+      '400':
+        $ref: ../components/responses/BadRequest.yaml
+      '401':
+        $ref: ../components/responses/Unauthorized.yaml
+      '422':
+        $ref: ../components/responses/UnprocessableEntity.yaml
+      '423':
+        description: Account locked after too many failed login attempts.
+        content:
+          application/problem+json:
+            schema:
+              $ref: ../components/schemas/Error.yaml
+      '429':
+        $ref: ../components/responses/TooManyRequests.yaml
+      '500':
+        $ref: ../components/responses/InternalServerError.yaml
+
+refresh:
+  post:
+    operationId: auth.refresh
+    summary: Refresh the current Sanctum token
+    description: |
+      Rotates the caller's bearer token. The current token is revoked
+      and a new one is issued with the same abilities and a fresh
+      30-day TTL.
+    tags: [Auth]
+    security:
+      - hmacAuth: []
+        sanctumBearer: []
+    parameters:
+      - $ref: ../components/parameters/XTenantId.yaml
+      - $ref: ../components/parameters/XAppId.yaml
+      - $ref: ../components/parameters/XTimestamp.yaml
+      - $ref: ../components/parameters/XNonce.yaml
+      - $ref: ../components/parameters/XSignature.yaml
+      - $ref: ../components/parameters/XApiVersion.yaml
+    responses:
+      '200':
+        description: New token issued.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/LoginResponse.yaml
+      '401':
+        $ref: ../components/responses/Unauthorized.yaml
+      '429':
+        $ref: ../components/responses/TooManyRequests.yaml
+
+logout:
+  post:
+    operationId: auth.logout
+    summary: Revoke the current Sanctum token
+    description: |
+      Revokes the bearer token used for this request. The token is no
+      longer valid after this call; the client must obtain a new one
+      via `POST /auth/login`.
+    tags: [Auth]
+    security:
+      - hmacAuth: []
+        sanctumBearer: []
+    parameters:
+      - $ref: ../components/parameters/XTenantId.yaml
+      - $ref: ../components/parameters/XAppId.yaml
+      - $ref: ../components/parameters/XTimestamp.yaml
+      - $ref: ../components/parameters/XNonce.yaml
+      - $ref: ../components/parameters/XSignature.yaml
+      - $ref: ../components/parameters/XApiVersion.yaml
+    responses:
+      '204':
+        description: Token revoked. The bearer is no longer valid.
+      '401':
+        $ref: ../components/responses/Unauthorized.yaml

@@ -1,0 +1,24 @@
+type: object
+description: RFC 6749 §5.1 access token response.
+required:
+  - token_type
+  - expires_in
+  - access_token
+properties:
+  token_type:
+    type: string
+    enum:
+      - Bearer
+    example: Bearer
+  expires_in:
+    type: integer
+    description: Token lifetime in seconds (1 hour by default).
+    example: 3600
+  access_token:
+    type: string
+    description: Passport-issued JWT.
+    example: eyJ0eXAiOiJKV1Q...
+  scope:
+    type: string
+    description: Granted scopes (may be a subset of the request).
+    example: availability:read reservations:write
