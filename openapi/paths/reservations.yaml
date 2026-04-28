@@ -4,8 +4,11 @@ collection:
     summary: List reservations belonging to the authenticated user
     description: |
       Returns the authenticated user's reservations across the active
-      tenant. B2B partners see only the reservations created via their
-      own bearer token (`reservations.b2b_partner_id` filter).
+      tenant. B2B partners see only the reservations created via
+      their own bearer token (`reservations.b2b_partner_id` filter).
+      Storage totals are emitted in `quote_currency`; if the request
+      carries `X-Display-Currency` the engine attaches a per-row
+      conversion using the latest active rate.
     tags: [Reservations]
     security:
       - hmacAuth: []
@@ -54,10 +57,14 @@ collection:
     summary: Create a reservation
     description: |
       Creates a reservation for the authenticated end-user. The
-      `Idempotency-Key` header is required: a retry with the same key
-      and identical body returns the cached response (24h window).
-      Pricing comes from `quote_id` if provided, otherwise the server
-      recomputes from `vehicle_id` + window.
+      `Idempotency-Key` header is required: a retry with the same
+      key and identical body returns the cached response (24h
+      window). The server recomputes the `PricingQuote` from
+      `vehicle_id` + window + locations on accept; if the recomputed
+      total differs from the offer the customer last saw the
+      response is `409 Conflict` and the client must re-quote. The
+      authenticated `customer` upsert is keyed on
+      `(tenant_id, email)`.
     tags: [Reservations]
     security:
       - hmacAuth: []
@@ -75,8 +82,8 @@ collection:
         in: header
         required: true
         description: |
-          Client-generated ULID. Required for write operations on the
-          `write` rate-limit tier. See common parameter
+          Client-generated ULID. Required for write operations on
+          the `write` rate-limit tier. See common parameter
           `IdempotencyKey` for full semantics.
         schema:
           type: string
@@ -120,15 +127,17 @@ collection:
 byId:
   parameters:
     - in: path
-      name: reservationId
+      name: reservation_number
       required: true
-      description: Reservation id.
+      description: |
+        Public reservation number (e.g. `RNT-2026-001234`). Tenant
+        scope is implicit from `X-Tenant-ID`.
       schema:
-        type: integer
-        format: int64
+        type: string
+        pattern: ^RNT-\d{4}-\d{6}$
   get:
     operationId: reservations.show
-    summary: Get a reservation by id
+    summary: Get a reservation by reservation_number
     description: |
       Returns the reservation if it belongs to the authenticated
       user (B2C) or to the partner that issued the bearer token
@@ -165,20 +174,23 @@ byId:
 cancel:
   parameters:
     - in: path
-      name: reservationId
+      name: reservation_number
       required: true
-      description: Reservation id.
+      description: Public reservation number (e.g. `RNT-2026-001234`).
       schema:
-        type: integer
-        format: int64
+        type: string
+        pattern: ^RNT-\d{4}-\d{6}$
   patch:
     operationId: reservations.cancel
     summary: Cancel a reservation
     description: |
       Transitions an eligible reservation to `cancelled`. The
-      tenant's cancellation policy (see `pricing_rules`) is applied
-      and refund/fee dollars are returned in the response. Already
-      cancelled reservations return `409`.
+      cancellation policy and refund/fee computation will land in
+      Sprint 1.7 — this Sprint 1.5 endpoint accepts the cancel
+      request and flips `status = cancelled`, `cancelled_at = now()`,
+      and stores the customer-supplied `reason` on
+      `cancellation_reason`. Already cancelled reservations return
+      `409`.
     tags: [Reservations]
     security:
       - hmacAuth: []
@@ -191,23 +203,19 @@ cancel:
       - $ref: ../components/parameters/XSignature.yaml
       - $ref: ../components/parameters/XApiVersion.yaml
     requestBody:
-      required: false
+      required: true
       content:
         application/json:
           schema:
             type: object
+            required: [reason]
             properties:
-              reason_code:
+              reason:
                 type: string
-                enum:
-                  - customer_cancelled
-                  - duplicate
-                  - payment_failed
-                  - other
-                example: customer_cancelled
-              notes:
-                type: [string, "null"]
+                minLength: 1
                 maxLength: 1000
+                description: Customer-supplied free-text cancellation reason.
+                example: Travel plans changed.
     responses:
       '200':
         description: Cancellation accepted.
@@ -218,25 +226,7 @@ cancel:
               required: [data]
               properties:
                 data:
-                  type: object
-                  required: [id, status, cancelled_at]
-                  properties:
-                    id:
-                      type: integer
-                      format: int64
-                      example: 123456
-                    status:
-                      type: string
-                      enum: [cancelled]
-                      example: cancelled
-                    cancelled_at:
-                      type: string
-                      format: date-time
-                      example: 2026-04-29T08:00:00Z
-                    cancellation_fee:
-                      $ref: ../components/schemas/Money.yaml
-                    refund_amount:
-                      $ref: ../components/schemas/Money.yaml
+                  $ref: ../components/schemas/Reservation.yaml
       '401':
         $ref: ../components/responses/Unauthorized.yaml
       '404':

@@ -1,54 +1,30 @@
 type: object
 description: |
-  Single bookable offer returned from search/availability. Pricing
-  totals are in storage currency with display currency conversion in
-  the same `Money` object.
+  Single bookable offer returned from `POST /search/availability`.
+  Pricing (storage + display currency) is delegated to a full
+  `PricingQuote` so the storefront can render a stable breakdown
+  without re-quoting.
 required:
   - vehicle
-  - available_units
-  - daily_rate
-  - grand_total
-  - currency
+  - pricing
+  - units_available
+  - is_one_way
 properties:
   vehicle:
     $ref: ./Vehicle.yaml
-  available_units:
+  pricing:
+    $ref: ./PricingQuote.yaml
+  units_available:
     type: integer
     minimum: 0
-    description: Number of plates that satisfy the request after stop-sale and reservation conflicts are subtracted.
-    example: 4
-  daily_rate:
-    $ref: ./Money.yaml
-  drop_fee:
-    $ref: ./Money.yaml
-  extras_total:
-    $ref: ./Money.yaml
-  tax_total:
-    $ref: ./Money.yaml
-  grand_total:
-    $ref: ./Money.yaml
-  currency:
-    type: string
-    pattern: ^[A-Z]{3}$
-    description: Storage currency for this offer (tenant default).
-    example: TRY
-  daily_breakdown:
-    type: array
-    items:
-      type: object
-      required:
-        - date
-        - amount
-      properties:
-        date:
-          type: string
-          format: date
-        amount:
-          $ref: ./Money.yaml
-  rate_locked_until:
-    type: string
-    format: date-time
     description: |
-      Offers are valid for a short window (typically 15 minutes); if
-      the client books after this timestamp the price is recomputed.
-    example: 2026-04-28T11:30:00Z
+      Plates of the vehicle that satisfy the request after stop-sale
+      and reservation conflicts are subtracted.
+    example: 4
+  is_one_way:
+    type: boolean
+    description: |
+      True when `pickup_location_id ≠ dropoff_location_id`. The
+      drop-fee component (when applicable) is included in
+      `pricing.total_amount`.
+    example: false

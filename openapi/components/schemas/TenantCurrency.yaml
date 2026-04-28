@@ -1,0 +1,96 @@
+type: object
+description: |
+  Tenant-scoped currency configuration (mirrors `tenant_currencies`,
+  see ADR-019 and `docs/16-multi-currency-design.md` §3.1). Each tenant
+  activates a subset of the platform `Currency` master and may
+  customise the display `name`, `symbol`, mark exactly one entry as
+  the tenant default (`is_default = true`) and choose how the
+  cross-rate to that default is sourced (`rate_strategy`).
+
+  `rate_to_default` is the multiplier used to convert an amount in
+  this currency into the tenant default. For the entry where
+  `is_default = true` the field is `null` (an identity rate is
+  implicit). For other entries the value is the latest snapshot,
+  refreshed by the rate-update job; `rate_effective_at` is the
+  timestamp the snapshot was captured.
+required:
+  - code
+  - name
+  - symbol
+  - decimal_places
+  - is_default
+  - rate_strategy
+properties:
+  code:
+    type: string
+    minLength: 3
+    maxLength: 3
+    pattern: ^[A-Z]{3}$
+    description: ISO 4217 currency code.
+    example: TRY
+  name:
+    type: string
+    description: |
+      Tenant-specific localized display name for the current request
+      locale (resolved from `Accept-Language`, falling back to
+      `tenant.locale_default`). See ADR-018 — the underlying
+      translations are an internal Backoffice concern and are not
+      exposed by the public API.
+    example: Türk Lirası
+  symbol:
+    type: string
+    description: |
+      Tenant-specific display symbol. Falls back to
+      `Currency.default_symbol` when the tenant has not customised it.
+    example: "₺"
+  decimal_places:
+    type: integer
+    minimum: 0
+    maximum: 8
+    description: |
+      Effective fractional digits used for display. Tenants may pin
+      this to a value lower than `Currency.decimal_places` (for
+      example to round JPY-style currencies to whole units) but never
+      higher.
+    example: 2
+  is_default:
+    type: boolean
+    description: |
+      True when this is the tenant default currency (the storage
+      currency for `pricing_rules`, `reservations.currency`, etc.).
+      Exactly one row per tenant has `is_default = true`.
+    example: true
+  rate_strategy:
+    type: string
+    enum:
+      - tcmb
+      - manual
+      - frozen
+    description: |
+      How `rate_to_default` is sourced. `tcmb` — refreshed by the
+      TCMB ingest job; `manual` — set by the tenant admin and held
+      until manually overwritten; `frozen` — refresh disabled (used
+      during incident response).
+    example: tcmb
+  rate_to_default:
+    type: [string, "null"]
+    pattern: ^\d+(\.\d{1,8})?$
+    description: |
+      Cross-rate from this currency to the tenant default
+      (`tenant.currency_default`). `null` when this row IS the
+      default. Decimal-string for rounding fidelity.
+    example: null
+  rate_effective_at:
+    type: [string, "null"]
+    format: date-time
+    description: |
+      Timestamp the active `rate_to_default` snapshot was captured.
+      `null` for the tenant default and for `rate_strategy = manual`
+      entries that have never been set.
+    example: null
+  is_active:
+    type: boolean
+    default: true
+    description: |
+      Inactive entries are kept for historical reservations but are
+      not offered as `X-Display-Currency` choices on new searches.

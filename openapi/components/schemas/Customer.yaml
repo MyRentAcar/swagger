@@ -1,19 +1,31 @@
 type: object
 description: |
-  End customer (B2C) or driver record. Mirrors a subset of `customers`
-  (`docs/03-database-schema.md` §10.1). PII is redacted in list views;
-  the full record is only returned on owned reservations.
+  End-customer (B2C) record returned on owned reservations and on
+  `GET /customers/me`. PII fields (`tckn`, `passport_no`,
+  `license_number`, `date_of_birth`) are emitted masked — only the
+  customer themselves and Backoffice (which talks to the database
+  directly) see the unmasked values.
 required:
-  - first_name
-  - last_name
+  - id
   - email
   - phone
+  - first_name
+  - last_name
 properties:
   id:
     type: integer
     format: int64
     readOnly: true
     example: 4711
+  email:
+    type: string
+    format: email
+    example: john.doe@example.com
+  phone:
+    type: string
+    description: E.164 phone number.
+    pattern: ^\+[1-9]\d{6,14}$
+    example: "+905551234567"
   first_name:
     type: string
     minLength: 1
@@ -24,62 +36,53 @@ properties:
     minLength: 1
     maxLength: 80
     example: Doe
-  email:
-    type: string
-    format: email
-    example: john.doe@example.com
-  phone:
-    type: string
-    description: E.164 phone number.
-    pattern: ^\+[1-9]\d{6,14}$
-    example: "+905551234567"
-  national_id:
-    type: string
-    description: TCKN or passport number; tenant-level secret.
-    minLength: 5
-    maxLength: 30
-    example: "12345678901"
-  birth_date:
-    type: string
+  tckn_masked:
+    type: [string, "null"]
+    description: |
+      Masked Turkish national ID. Always 11 asterisks
+      (`***********`) when the underlying record is set, `null`
+      otherwise. The unmasked value is never returned over the API.
+    example: "***********"
+  passport_no_masked:
+    type: [string, "null"]
+    description: |
+      Masked passport number — first and last character preserved,
+      the rest replaced with asterisks. `null` when no passport is
+      on file.
+    example: "X******3"
+  nationality:
+    type: [string, "null"]
+    minLength: 2
+    maxLength: 2
+    pattern: ^[A-Z]{2}$
+    example: TR
+  date_of_birth:
+    type: [string, "null"]
     format: date
+    description: Returned only on `GET /customers/me`; null in all other contexts.
     example: 1985-03-15
-  license:
-    type: object
-    properties:
-      number:
-        type: string
-        example: X9876543
-      country:
-        type: string
-        pattern: ^[A-Z]{2}$
-        example: TR
-      issued_at:
-        type: string
-        format: date
-        example: 2010-04-01
-      expires_at:
-        type: string
-        format: date
-        example: 2030-04-01
-  address:
-    type: [object, "null"]
-    properties:
-      line1:
-        type: string
-        example: Bagdat Cad. No:101
-      line2:
-        type: [string, "null"]
-      city:
-        type: string
-        example: Istanbul
-      postal_code:
-        type: string
-        example: "34728"
-      country:
-        type: string
-        pattern: ^[A-Z]{2}$
-        example: TR
+  license_number_masked:
+    type: [string, "null"]
+    description: Masked driver licence number; null when no licence is on file.
+    example: "X*****3"
+  license_issued_at:
+    type: [string, "null"]
+    format: date
+    example: 2010-04-01
+  license_expires_at:
+    type: [string, "null"]
+    format: date
+    example: 2030-04-01
+  language:
+    type: string
+    description: Preferred locale for transactional communications.
+    example: tr_TR
+  marketing_consent:
+    type: boolean
+    description: KVKK marketing consent for the current tenant.
+    example: false
   kvkk_consent_at:
     type: [string, "null"]
     format: date-time
-    description: Timestamp when the KVKK consent text was accepted.
+    description: Timestamp the KVKK consent text was last accepted.
+    example: 2026-04-28T10:00:00Z

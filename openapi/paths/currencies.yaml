@@ -1,12 +1,55 @@
+list:
+  get:
+    operationId: currencies.list
+    summary: List active currencies for the current tenant
+    description: |
+      Returns the active rows of `tenant_currencies` for the active
+      tenant (resolved from `X-Tenant-ID`). Each entry carries the
+      tenant-specific localized `name`, the effective `symbol`, the
+      `is_default` flag, the cross-rate to the tenant default
+      (`rate_to_default`) and the rate-source strategy. Storefronts
+      use this list to populate the `X-Display-Currency` selector;
+      `is_default = true` is the storage currency. See ADR-019 and
+      `docs/16-multi-currency-design.md`.
+    tags: [Currencies]
+    security:
+      - hmacAuth: []
+    parameters:
+      - $ref: ../components/parameters/XTenantId.yaml
+      - $ref: ../components/parameters/XAppId.yaml
+      - $ref: ../components/parameters/XTimestamp.yaml
+      - $ref: ../components/parameters/XNonce.yaml
+      - $ref: ../components/parameters/XSignature.yaml
+      - $ref: ../components/parameters/XApiVersion.yaml
+      - $ref: ../components/parameters/AcceptLanguage.yaml
+    responses:
+      '200':
+        description: Active tenant currencies.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/TenantCurrency.yaml
+      '401':
+        $ref: ../components/responses/Unauthorized.yaml
+
 rates:
   get:
     operationId: currencies.rates
-    summary: Get the currently active cross-rates
+    summary: Get the currently active cross-rates for the tenant
     description: |
-      Returns the latest currency rates the platform has cached
-      (TCMB-sourced for `TRY`, see `docs/16-multi-currency-design.md`
-      §4). Optional `base` and `quote` filter the result; without
-      filters all `valid_until IS NULL` rows are returned.
+      Returns the latest currency rate snapshots used to convert
+      between the tenant's active currencies (see ADR-019 and
+      `docs/16-multi-currency-design.md` §4). Without filters all
+      pairs that involve at least one active `TenantCurrency` are
+      returned. The optional `base` query parameter narrows the
+      result to a specific base currency; when omitted the tenant
+      default is used.
     tags: [Currencies]
     security:
       - hmacAuth: []
@@ -20,22 +63,29 @@ rates:
       - in: query
         name: base
         required: false
-        description: Filter by base currency (ISO 4217).
+        description: |
+          ISO 4217 base currency. When omitted, the tenant default
+          (the row in `TenantCurrency` with `is_default = true`) is
+          used.
         schema:
           type: string
+          minLength: 3
+          maxLength: 3
           pattern: ^[A-Z]{3}$
         example: TRY
       - in: query
         name: quote
         required: false
-        description: Filter by quote currency (ISO 4217).
+        description: ISO 4217 quote currency filter.
         schema:
           type: string
+          minLength: 3
+          maxLength: 3
           pattern: ^[A-Z]{3}$
         example: USD
     responses:
       '200':
-        description: Active rates.
+        description: Active rates for the tenant.
         content:
           application/json:
             schema:
@@ -49,6 +99,11 @@ rates:
                 meta:
                   type: object
                   properties:
+                    base:
+                      type: string
+                      pattern: ^[A-Z]{3}$
+                      description: Base currency the response is keyed by.
+                      example: TRY
                     fetched_at:
                       type: string
                       format: date-time

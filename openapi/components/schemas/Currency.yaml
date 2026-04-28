@@ -1,40 +1,36 @@
 type: object
 description: |
-  ISO 4217 currency reference (mirrors the `currencies` table, see
-  `docs/16-multi-currency-design.md` §3.1).
+  ISO 4217 currency master record (mirrors the `currencies` reference
+  table, see ADR-019 and `docs/16-multi-currency-design.md` §3.1).
+  This is the platform-wide catalog and is independent of any tenant —
+  for the per-tenant view (with tenant-specific `name`, `symbol`,
+  `is_default`, `rate_strategy`) see `TenantCurrency`.
 required:
   - code
-  - name
-  - symbol
+  - iso_name
   - decimal_places
+  - default_symbol
 properties:
   code:
     type: string
+    minLength: 3
+    maxLength: 3
     pattern: ^[A-Z]{3}$
     description: ISO 4217 alphabetic code.
     example: TRY
-  name:
+  iso_name:
     type: string
-    description: English display name.
+    description: ISO 4217 official English name.
     example: Turkish Lira
-  symbol:
-    type: string
-    description: Currency symbol (graphical).
-    example: "₺"
-  symbol_position:
-    type: string
-    enum:
-      - before
-      - after
-    default: before
-    example: before
   decimal_places:
     type: integer
     minimum: 0
     maximum: 8
-    description: Number of fractional digits used in display.
+    description: ISO 4217 fractional digits (currency exponent).
     example: 2
-  is_active:
-    type: boolean
-    default: true
-    example: true
+  default_symbol:
+    type: string
+    description: |
+      Conventional graphical symbol. Tenants may override this in the
+      `tenant_currencies.symbol` column — see `TenantCurrency.symbol`.
+    example: "₺"

@@ -7,7 +7,8 @@ check:
       from `stop_sales` for a given vehicle and date window
       (see `docs/06-stop-sale-design.md` and
       `docs/03-database-schema.md` §5.3). Use this endpoint from the
-      Backoffice UI, B2B partner pre-flight checks, or for debugging
+      storefront for "is this car bookable" pre-flight checks, B2B
+      partner integrations, or for debugging
       "why is this car not bookable" tickets.
     tags: [StopSale]
     security:
@@ -19,6 +20,7 @@ check:
       - $ref: ../components/parameters/XNonce.yaml
       - $ref: ../components/parameters/XSignature.yaml
       - $ref: ../components/parameters/XApiVersion.yaml
+      - $ref: ../components/parameters/AcceptLanguage.yaml
       - in: query
         name: vehicle_id
         required: true
@@ -26,34 +28,32 @@ check:
         schema:
           type: integer
           format: int64
-      - in: query
-        name: vehicle_unit_id
-        required: false
-        description: Optional plate id; when omitted only `vehicle` and `global` scopes are checked.
-        schema:
-          type: integer
-          format: int64
+          minimum: 1
       - in: query
         name: from
         required: true
-        description: Window start (inclusive).
+        description: Window start date (inclusive, tenant timezone).
         schema:
           type: string
-          format: date-time
+          format: date
       - in: query
         name: to
         required: true
-        description: Window end (exclusive).
+        description: Window end date (inclusive, tenant timezone).
         schema:
           type: string
-          format: date-time
+          format: date
       - in: query
         name: location_id
         required: false
+        description: |
+          Optional pickup location. When supplied, restricts the
+          check to stop-sales that target this location (or are
+          tenant-wide).
         schema:
           type: integer
           format: int64
-        description: Restricts global/vehicle scopes that are pinned to a single location.
+          minimum: 1
     responses:
       '200':
         description: Check result.
@@ -65,6 +65,8 @@ check:
               properties:
                 data:
                   $ref: ../components/schemas/StopSaleCheckResult.yaml
+      '401':
+        $ref: ../components/responses/Unauthorized.yaml
       '422':
         $ref: ../components/responses/UnprocessableEntity.yaml
       '404':

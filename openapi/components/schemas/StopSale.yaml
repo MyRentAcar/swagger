@@ -2,54 +2,88 @@ type: object
 description: |
   Stop-sale record (mirrors `stop_sales`,
   `docs/03-database-schema.md` §5.1 and `docs/06-stop-sale-design.md`).
-  Three scopes are supported: `global` (whole fleet), `vehicle` (all
-  plates of a type), `plate` (single plate).
+  Three levels are supported: `global` (whole fleet), `vehicle` (all
+  plates of a type), `plate` (single plate). The check engine walks
+  these in `plate → vehicle → global` precedence.
 required:
   - id
-  - scope
-  - is_unlimited
+  - level
+  - start_date
+  - end_date
+  - reason
   - is_active
 properties:
   id:
     type: integer
     format: int64
     example: 88
-  scope:
+  level:
     type: string
     enum:
+      - global
       - vehicle
       - plate
-      - global
+    description: |
+      Stop-sale scope. `vehicle` requires `vehicle_id`; `plate`
+      requires `vehicle_unit_id`; `global` ignores both.
     example: vehicle
   vehicle_id:
     type: [integer, "null"]
     format: int64
-    description: Required when scope = `vehicle`.
+    description: Required when level = `vehicle`.
     example: 42
   vehicle_unit_id:
     type: [integer, "null"]
     format: int64
-    description: Required when scope = `plate`.
+    description: Required when level = `plate`.
     example: null
-  location_id:
-    type: [integer, "null"]
-    format: int64
-    description: Optional - restrict the stop-sale to one pickup location.
-  starts_at:
+  start_date:
+    type: string
+    format: date
+    description: Inclusive lower bound of the blocked window.
+    example: 2026-04-29
+  end_date:
+    type: string
+    format: date
+    description: Inclusive upper bound of the blocked window.
+    example: 2026-04-30
+  start_time:
     type: [string, "null"]
-    format: date-time
-    example: 2026-04-29T00:00:00Z
-  ends_at:
+    format: time
+    description: |
+      Optional wall-clock start within `start_date` (tenant timezone).
+      Null means the block applies from `00:00`.
+    example: null
+  end_time:
     type: [string, "null"]
-    format: date-time
-    example: 2026-04-30T00:00:00Z
-  is_unlimited:
-    type: boolean
-    description: When true, `starts_at` / `ends_at` are ignored.
-    default: false
+    format: time
+    description: |
+      Optional wall-clock end within `end_date` (tenant timezone).
+      Null means the block applies through `23:59:59`.
+    example: null
+  applicable_locations:
+    type: [array, "null"]
+    description: |
+      When set, the block only matches reservations whose pickup
+      location is in this list. Null means tenant-wide.
+    items:
+      type: integer
+      format: int64
+    example: [10, 11]
   reason:
+    type: string
+    enum:
+      - maintenance
+      - damage
+      - reserved_external
+      - event
+      - other
+    description: Coded reason for the block (drives Backoffice grouping).
+    example: maintenance
+  description:
     type: [string, "null"]
-    example: Trade fair fleet allocation
+    description: Operator-supplied free-text note shown in the Backoffice.
+    example: Annual service at workshop A.
   is_active:
     type: boolean
     default: true

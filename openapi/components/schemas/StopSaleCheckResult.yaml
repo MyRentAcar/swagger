@@ -1,47 +1,54 @@
 type: object
 description: |
   Result of a three-level stop-sale availability check for a given
-  vehicle (and optionally vehicle unit) over a date range. The check
-  evaluates `plate` → `vehicle` → `global` in that precedence order
-  (see `docs/06-stop-sale-design.md` and `docs/03-database-schema.md`
-  §5.3).
+  vehicle and date window. The check evaluates `plate` → `vehicle` →
+  `global` in that precedence order (see `docs/06-stop-sale-design.md`
+  and `docs/03-database-schema.md` §5.3) and returns the highest
+  level that matched together with a count of plates still available
+  for the window.
 required:
   - is_blocked
-  - vehicle_id
-  - from
-  - to
+  - level
 properties:
   is_blocked:
     type: boolean
     description: True when at least one stop-sale rule applies.
     example: true
-  blocked_by:
-    type: [string, "null"]
+  level:
+    type: string
     enum:
-      - plate
-      - vehicle
+      - none
       - global
-      - null
-    description: Highest-priority scope that matched, null if `is_blocked` is false.
+      - vehicle
+      - plate
+    description: |
+      Highest-priority level that matched. `none` when
+      `is_blocked = false`.
     example: vehicle
-  vehicle_id:
-    type: integer
-    format: int64
-    example: 42
-  vehicle_unit_id:
+  available_units_count:
     type: [integer, "null"]
-    format: int64
-    example: null
-  from:
-    type: string
-    format: date-time
-    example: 2026-05-01T10:00:00Z
-  to:
-    type: string
-    format: date-time
-    example: 2026-05-04T10:00:00Z
-  matches:
-    type: array
-    description: All matching stop-sale rules (debug-friendly listing).
+    minimum: 0
+    description: |
+      Plates of the requested vehicle that are NOT blocked for the
+      window (subtracts plates blocked by `plate` and `vehicle`-level
+      records). `null` when `level = global` (the whole fleet is
+      blocked, individual counts are not meaningful).
+    example: 0
+  blocked_dates:
+    type: [array, "null"]
+    description: |
+      Specific calendar dates within the requested window that are
+      blocked. Null when the result is uniform across the window.
     items:
-      $ref: ./StopSale.yaml
+      type: string
+      format: date
+    example:
+      - 2026-04-29
+      - 2026-04-30
+  matched_stop_sale:
+    description: |
+      The stop-sale record that drove `level`. Absent when
+      `is_blocked = false`.
+    oneOf:
+      - $ref: ./StopSale.yaml
+      - type: 'null'

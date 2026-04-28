@@ -1,44 +1,67 @@
 type: object
 description: |
   Reservation aggregate (mirrors `reservations`,
-  `docs/03-database-schema.md` §10.2). Money fields are emitted in
-  storage currency with display-currency conversion (when the
-  request's `X-Display-Currency` header is set).
+  `docs/03-database-schema.md` §10.2). Quote totals are stored in the
+  reservation's storage currency (`quote_currency`); display-currency
+  conversion (`display_currency`, `display_rate`) is captured at quote
+  acceptance time and is the figure the customer agreed to pay. See
+  ADR-019 and `docs/16-multi-currency-design.md` for the
+  storage/display split.
 required:
   - id
-  - reservation_code
-  - status
-  - payment_status
+  - reservation_number
+  - customer_id
+  - vehicle_id
+  - pickup_location_id
+  - dropoff_location_id
   - pickup_at
   - dropoff_at
-  - currency
-  - grand_total
+  - status
+  - quote_currency
+  - quote_total_amount
+  - quote_breakdown
+  - payment_status
+  - paid_amount
+  - channel
+  - created_at
 properties:
   id:
     type: integer
     format: int64
     example: 123456
-  reservation_code:
+  reservation_number:
     type: string
-    description: Tenant-internal human-readable code.
-    example: RES-2026-04-AB12CD
-  external_ref:
-    type: [string, "null"]
-    description: Caller-provided correlation id (B2B partner reference).
-    example: AGN-2026-04-12345
-  customer:
-    $ref: ./Customer.yaml
-  vehicle:
-    $ref: ./Vehicle.yaml
-  vehicle_unit:
-    oneOf:
-      - $ref: ./VehicleUnit.yaml
-      - type: "null"
+    pattern: ^RNT-\d{4}-\d{6}$
+    description: |
+      Public, tenant-scoped reservation identifier of the form
+      `RNT-<yyyy>-<6-digit-sequence>`. Used as the lookup key in the
+      end-user URLs and on `GET /reservations/{reservation_number}`.
+    example: RNT-2026-001234
+  customer_id:
+    type: integer
+    format: int64
+    example: 4711
+  vehicle_id:
+    type: integer
+    format: int64
+    description: |
+      Reserved vehicle template id (the contractual "or similar"
+      unit). Plate-level allocation lands in `vehicle_unit_id` at
+      pickup.
+    example: 42
+  vehicle_unit_id:
+    type: [integer, "null"]
+    format: int64
     description: Assigned plate; null until pickup-day allocation.
-  pickup_location:
-    $ref: ./Location.yaml
-  dropoff_location:
-    $ref: ./Location.yaml
+    example: null
+  pickup_location_id:
+    type: integer
+    format: int64
+    example: 10
+  dropoff_location_id:
+    type: integer
+    format: int64
+    example: 11
   pickup_at:
     type: string
     format: date-time
@@ -47,29 +70,16 @@ properties:
     type: string
     format: date-time
     example: 2026-05-13T10:00:00Z
-  total_days:
-    type: integer
-    minimum: 1
-    example: 3
-  base_price:
-    $ref: ./Money.yaml
-  drop_fee:
-    $ref: ./Money.yaml
-  extras_total:
-    $ref: ./Money.yaml
-  insurance_total:
-    $ref: ./Money.yaml
-  discount_total:
-    $ref: ./Money.yaml
-  tax_total:
-    $ref: ./Money.yaml
-  grand_total:
-    $ref: ./Money.yaml
-  currency:
-    type: string
-    pattern: ^[A-Z]{3}$
-    description: Storage currency (tenant default at creation time).
-    example: TRY
+  actual_pickup_at:
+    type: [string, "null"]
+    format: date-time
+    description: Set when the unit is physically handed to the customer.
+    example: null
+  actual_dropoff_at:
+    type: [string, "null"]
+    format: date-time
+    description: Set when the unit is physically returned.
+    example: null
   status:
     type: string
     enum:
@@ -80,6 +90,55 @@ properties:
       - cancelled
       - no_show
     example: confirmed
+  quote_currency:
+    type: string
+    minLength: 3
+    maxLength: 3
+    pattern: ^[A-Z]{3}$
+    description: |
+      ISO 4217 storage currency the quote totals are denominated in
+      (the tenant default at quote acceptance time).
+    example: TRY
+  quote_total_amount:
+    type: string
+    pattern: ^\d+(\.\d{1,4})?$
+    description: |
+      Quote grand total in `quote_currency`. This is the immutable
+      figure the customer accepted; subsequent rate movements do not
+      change it.
+    example: "6512.50"
+  quote_breakdown:
+    type: object
+    description: |
+      Frozen snapshot of the `PricingQuote.breakdown` that backed the
+      reservation (rule chain, period overrides, drop fee). Shape is
+      intentionally open — clients must tolerate unknown keys.
+    additionalProperties: true
+    example:
+      base_amount: "7250.00"
+      discount_amount: "1087.50"
+      surcharge_amount: "0.00"
+      drop_fee: "350.00"
+      total_amount: "6512.50"
+      rental_days: 5
+  display_currency:
+    type: [string, "null"]
+    minLength: 3
+    maxLength: 3
+    pattern: ^[A-Z]{3}$
+    description: |
+      ISO 4217 currency the customer was shown the total in at
+      checkout (frozen for the lifetime of the reservation). `null`
+      when the customer paid in `quote_currency`.
+    example: EUR
+  display_rate:
+    type: [string, "null"]
+    pattern: ^\d+(\.\d{1,8})?$
+    description: |
+      Multiplier captured at checkout such that
+      `display_total ≈ quote_total_amount × display_rate`. Frozen
+      with the reservation; `null` when `display_currency` is null.
+    example: "0.02918"
   payment_status:
     type: string
     enum:
@@ -88,23 +147,33 @@ properties:
       - paid
       - refunded
     example: paid
-  source_channel:
+  paid_amount:
+    type: string
+    pattern: ^\d+(\.\d{1,4})?$
+    description: Cumulative paid amount in `quote_currency`.
+    example: "6512.50"
+  channel:
     type: string
     enum:
       - web
-      - admin
-      - api
-      - mobile
-      - partner
-      - phone
+      - mobile_ios
+      - mobile_android
+      - b2b_agency
+      - backoffice
+      - walk_in
+    description: Origin channel of the reservation.
     example: web
-  created_at:
-    type: string
-    format: date-time
-    readOnly: true
+  notes:
+    type: [string, "null"]
+    maxLength: 1000
+  cancellation_reason:
+    type: [string, "null"]
+    description: Customer-supplied free-text reason on cancellation.
   cancelled_at:
     type: [string, "null"]
     format: date-time
     readOnly: true
-  cancellation_reason:
-    type: [string, "null"]
+  created_at:
+    type: string
+    format: date-time
+    readOnly: true

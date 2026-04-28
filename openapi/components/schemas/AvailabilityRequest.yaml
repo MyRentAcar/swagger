@@ -1,12 +1,11 @@
 type: object
 description: |
-  Cross-fleet availability query. Returns one offer per vehicle type
-  that is bookable for the requested window and route.
+  Cross-fleet availability query. Returns one offer per vehicle
+  template that is bookable for the requested window and route.
 required:
   - pickup_at
   - dropoff_at
   - pickup_location_id
-  - dropoff_location_id
 properties:
   pickup_at:
     type: string
@@ -23,28 +22,15 @@ properties:
     format: int64
     example: 10
   dropoff_location_id:
-    type: integer
+    type: [integer, "null"]
     format: int64
+    description: |
+      Optional drop-off location. When omitted the search assumes
+      same-location drop-off (`pickup_location_id`) and skips the
+      drop-fee branch.
     example: 11
   vehicle_class_id:
     type: [integer, "null"]
     format: int64
-    description: Optional filter - restrict to one class.
+    description: Optional filter — restrict to a single vehicle class.
     example: 3
-  drivers_count:
-    type: integer
-    minimum: 1
-    maximum: 5
-    default: 1
-    example: 1
-  promo_code:
-    type: [string, "null"]
-    example: SUMMER25
-  channel:
-    type: string
-    enum:
-      - web
-      - mobile
-      - admin
-      - b2b
-    default: web

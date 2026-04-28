@@ -2,14 +2,17 @@ type: object
 description: |
   Output envelope for `GET /vehicles/{id}/pricing` and the internal
   pricing engine (mirrors `App\\Services\\Pricing\\PricingQuote`). All
-  monetary values are decimal numbers in `currency`, the storage
-  currency (defaults to `tenant.currency_default`, may be overridden
-  by the resolved rule's `currency`).
+  storage-currency monetary values are decimal strings in `currency`
+  (resolved from the matched rule's `currency`, falling back to
+  `tenant.currency_default`).
 
-  Multi-currency display conversion (`display_currency`,
-  `display_total`, `display_rate`, `rate_source`, `rate_effective_at`)
-  ships in Sprint 1.5 and is intentionally absent from this schema
-  until then — see `docs/16-multi-currency-design.md`.
+  The display-currency block (`display_currency`, `display_total`,
+  `display_rate`, `rate_source`, `rate_effective_at`) carries the
+  conversion snapshot used to render totals to the end user. It is
+  always present — when the request locale resolves to the same
+  currency as `currency` the display values mirror the storage
+  values, `display_rate` is `"1.00000000"` and `rate_source` reflects
+  the strategy of the tenant default (typically `tcmb`).
 
   `rules_applied` is the audit trail of every layer that touched the
   price (matched rule, period overrides, drop fee). `breakdown` is a
@@ -21,40 +24,42 @@ required:
   - surcharge_amount
   - total_amount
   - currency
+  - display_currency
+  - display_total
+  - display_rate
+  - rate_source
+  - rate_effective_at
   - rental_days
   - rules_applied
   - breakdown
 properties:
   base_amount:
-    type: number
-    format: double
-    minimum: 0
+    type: string
+    pattern: ^\d+(\.\d{1,4})?$
     description: Pre-discount, pre-surcharge, pre-drop-fee subtotal (greedy-bucket allocation).
-    example: 7250.00
+    example: "7250.00"
   drop_fee:
-    type: number
-    format: double
-    minimum: 0
-    description: One-way drop fee for `pickup_location_id` ≠ `dropoff_location_id`; 0 otherwise.
-    example: 350.00
+    type: string
+    pattern: ^\d+(\.\d{1,4})?$
+    description: One-way drop fee for `pickup_location_id` ≠ `dropoff_location_id`; `"0"` otherwise.
+    example: "350.00"
   discount_amount:
-    type: number
-    format: double
-    minimum: 0
+    type: string
+    pattern: ^\d+(\.\d{1,4})?$
     description: Sum of period-override discount components.
-    example: 1087.50
+    example: "1087.50"
   surcharge_amount:
-    type: number
-    format: double
+    type: string
+    pattern: ^-?\d+(\.\d{1,4})?$
     description: Sum of period-override surcharge components (may be negative).
-    example: 0.00
+    example: "0.00"
   total_amount:
-    type: number
-    format: double
+    type: string
+    pattern: ^\d+(\.\d{1,4})?$
     description: |
-      Final total, rounded to two decimals:
+      Final total in storage currency, rounded to two decimals:
       `base_amount - discount_amount + surcharge_amount + drop_fee`.
-    example: 6512.50
+    example: "6512.50"
   currency:
     type: string
     minLength: 3
@@ -63,9 +68,53 @@ properties:
     description: |
       ISO 4217 storage currency. Resolved from the matched
       `pricing_rule.currency`, falling back to `tenant.currency_default`
-      and finally to `TRY`. Display-currency conversion is a Sprint 1.5
-      feature and is not yet part of this payload.
+      and finally to `TRY`.
     example: TRY
+  display_currency:
+    type: string
+    minLength: 3
+    maxLength: 3
+    pattern: ^[A-Z]{3}$
+    description: |
+      ISO 4217 display currency for `display_total`. Resolved from the
+      `X-Display-Currency` request header, falling back to the
+      authenticated user preference and finally to
+      `tenant.currency_default`. Must match an active row of
+      `TenantCurrency` for the tenant.
+    example: EUR
+  display_total:
+    type: string
+    pattern: ^\d+(\.\d{1,4})?$
+    description: |
+      `total_amount` converted into `display_currency` using
+      `display_rate`. Rounded to `TenantCurrency.decimal_places` for
+      `display_currency`.
+    example: "190.00"
+  display_rate:
+    type: string
+    pattern: ^\d+(\.\d{1,8})?$
+    description: |
+      Multiplier such that
+      `display_total ≈ total_amount × display_rate`. The tenant
+      default's rate to itself is always `"1.00000000"`.
+    example: "0.02918"
+  rate_source:
+    type: string
+    enum:
+      - tcmb
+      - manual
+      - frozen
+    description: |
+      Origin of `display_rate`, mirrors
+      `TenantCurrency.rate_strategy` for `display_currency`.
+    example: tcmb
+  rate_effective_at:
+    type: string
+    format: date-time
+    description: |
+      Timestamp the rate snapshot used in `display_rate` was captured.
+      Clients can use this to detect stale conversions.
+    example: 2026-04-28T13:30:00Z
   rental_days:
     type: integer
     minimum: 0
@@ -113,20 +162,24 @@ properties:
           format: int64
           description: Present on `drop_fee` entries.
   breakdown:
-    type: object
+    type: array
     description: |
-      Flat key→value map of the numbers behind `total_amount`. The
-      shape is stable for storefront rendering but the platform
-      reserves the right to add new keys; clients must tolerate
-      unknown keys.
-    additionalProperties: true
+      Storefront-friendly per-bucket trace of how `total_amount` was
+      assembled (one entry per pricing component — daily/weekly/monthly
+      bucket, period override, drop fee). Clients must tolerate
+      unknown keys on individual entries.
+    items:
+      type: object
+      additionalProperties: true
     example:
-      rental_days: 5
-      daily_rate: 1450.00
-      weekly_rate: 9000.00
-      monthly_rate: 32000.00
-      base_amount: 7250.00
-      discount_amount: 1087.50
-      surcharge_amount: 0.00
-      drop_fee: 350.00
-      total_amount: 6512.50
+      - component: daily_bucket
+        days: 5
+        unit_rate: "1450.00"
+        amount: "7250.00"
+      - component: period_override
+        name: Summer 2026 — 15% discount
+        amount: "-1087.50"
+      - component: drop_fee
+        pickup_location_id: 10
+        dropoff_location_id: 11
+        amount: "350.00"

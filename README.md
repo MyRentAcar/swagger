@@ -174,18 +174,44 @@ client to a specific major. Each major lives in its own file pair
 This spec lags the implementation by one PR per sprint. The table below
 tracks which sprint's endpoints are reflected in `openapi/openapi.yaml`.
 
-| Sprint                              | Endpoints | Status   |
-| ----------------------------------- | --------- | -------- |
-| Faz 0 (initial skeleton)            | 18        | Synced   |
-| Sprint 1.4 admin CRUD (6 resources) | +30       | Synced   |
-| Sprint 1.4 pricing quote            | +1        | Synced   |
-| Sprint 1.5 stop-sale check          | +1        | Pending  |
-| Sprint 1.5 reservations CRUD        | +5        | Pending  |
-| Sprint 1.5 currencies               | +2        | Pending  |
-| Sprint 1.5 multi-currency display   | schema    | Pending  |
+| Sprint                                       | Endpoints | Status  |
+| -------------------------------------------- | --------- | ------- |
+| Faz 0 (initial skeleton)                     | 18        | Synced  |
+| Sprint 1.4 pricing quote                     | +1        | Synced  |
+| Sprint 1.5 admin removal (ADR-020)           | -30       | Synced  |
+| Sprint 1.5 i18n response refactor (ADR-018)  | schema    | Synced  |
+| Sprint 1.5 tenant-scoped currencies (ADR-019)| +1        | Synced  |
+| Sprint 1.5 stop-sale check                   | +1        | Synced  |
+| Sprint 1.5 reservations CRUD                 | +3        | Synced  |
+| Sprint 1.5 multi-currency display            | schema    | Synced  |
 
-Sprint 1.5 endpoints land in a follow-up sync once the parallel
-`monolithapi` sprint merges. The Sprint 1.5 multi-currency fields
-(`display_currency`, `display_total`, `display_rate`, `rate_source`,
-`rate_effective_at`) on `PricingQuote` are intentionally omitted from
-this revision — they ship together with the live cross-rate engine.
+### Sprint 1.5 architecture refactors
+
+Three architectural decisions reshape the public contract in this
+revision:
+
+- **ADR-020 — admin endpoints removed**. The Backoffice connects
+  directly to the database, so the 30 `/v1/admin/*` endpoints added
+  in Sprint 1.4 have been removed. The corresponding `admin-*` tags
+  are gone too.
+- **ADR-018 — i18n response format**. Localized fields
+  (`Vehicle.description`, `Vehicle.features`, `VehicleClass.name`,
+  `VehicleClass.description`, `Location.name`, `Location.address`)
+  are now emitted as a single localized string for the request
+  locale (resolved from `Accept-Language`, falling back to
+  `tenant.locale_default`). The `I18nString` schema has been deleted
+  — translation maps are an internal Backoffice concern and are not
+  exposed by the public API.
+- **ADR-019 — tenant-scoped currencies**. The platform `Currency`
+  schema now holds the ISO 4217 master record (`code`, `iso_name`,
+  `decimal_places`, `default_symbol`). The new `TenantCurrency`
+  schema is the per-tenant view returned by `GET /v1/currencies` —
+  it carries the localized `name`, the effective `symbol`, the
+  `is_default` flag, the cross-rate to the tenant default
+  (`rate_to_default`) and the rate-source strategy
+  (`rate_strategy`).
+
+The Sprint 1.5 multi-currency fields (`display_currency`,
+`display_total`, `display_rate`, `rate_source`, `rate_effective_at`)
+on `PricingQuote` are now part of this revision — they ship together
+with the live cross-rate engine and the new `TenantCurrency` model.

@@ -4,7 +4,11 @@ description: |
   (mirrors `vehicles`, see `docs/03-database-schema.md` §4.4). One
   Vehicle is rented "or similar" and may be fulfilled by any matching
   `VehicleUnit` (plate). Tenant-scoped; the `slug` is unique within a
-  tenant. `description` and `features` are i18n maps.
+  tenant. `description` and `features` are emitted as single localized
+  strings for the request locale (resolved from `Accept-Language`,
+  falling back to `tenant.locale_default`). See ADR-018 — translation
+  maps are an internal Backoffice concern and are not exposed by the
+  public API.
 required:
   - id
   - slug
@@ -91,10 +95,9 @@ properties:
     maximum: 50
     example: 1
   description:
-    oneOf:
-      - $ref: ./I18nString.yaml
-      - type: 'null'
-    description: Optional i18n description.
+    type: [string, "null"]
+    description: Localized description for the current request locale.
+    example: Compact 5-door hatchback, ideal for city driving.
   images:
     type: [array, "null"]
     items:
@@ -104,12 +107,11 @@ properties:
       - https://cdn.example.com/vehicles/42/1.jpg
       - https://cdn.example.com/vehicles/42/2.jpg
   features:
-    oneOf:
-      - $ref: ./I18nString.yaml
-      - type: 'null'
+    type: [string, "null"]
     description: |
-      Optional i18n feature highlights (bluetooth, cruise control, …)
-      rendered as a free-form localised string per locale.
+      Optional localized feature highlights (bluetooth, cruise control, …)
+      for the current request locale.
+    example: Bluetooth, cruise control, USB-C, rear camera
   display_order:
     type: integer
     minimum: 0

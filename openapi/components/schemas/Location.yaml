@@ -2,7 +2,11 @@ type: object
 description: |
   Pickup or drop-off location (mirrors `locations`,
   `docs/03-database-schema.md` §3.3). Tenant-scoped; the `slug` is
-  unique within a tenant. `name` and `address` are i18n maps.
+  unique within a tenant. `name` and `address` are emitted as single
+  localized strings for the request locale (resolved from
+  `Accept-Language`, falling back to `tenant.locale_default`). See
+  ADR-018 — translation maps are an internal Backoffice concern and
+  are not exposed by the public API.
 required:
   - id
   - slug
@@ -21,7 +25,9 @@ properties:
     description: Tenant-unique stable identifier (kebab-case).
     example: istanbul-airport
   name:
-    $ref: ./I18nString.yaml
+    type: string
+    description: Localized location name for the current request locale.
+    example: Istanbul Airport
   type:
     type: string
     enum:
@@ -39,10 +45,9 @@ properties:
     description: Three-letter IATA airport code where applicable.
     example: IST
   address:
-    oneOf:
-      - $ref: ./I18nString.yaml
-      - type: 'null'
-    description: Optional i18n street address.
+    type: [string, "null"]
+    description: Localized street address for the current request locale.
+    example: Tayakadın, 34283 Arnavutköy/Istanbul
   city:
     type: string
     maxLength: 120

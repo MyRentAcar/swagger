@@ -1,0 +1,82 @@
+type: object
+description: |
+  Customer payload accepted on `POST /reservations`. The server
+  upserts a `customers` row keyed by `(tenant_id, email)`; identity
+  fields supplied here overwrite previous values for the same key.
+  PII fields (`tckn`, `passport_no`, `license_*`, `date_of_birth`)
+  are stored encrypted at rest and surfaced masked on read endpoints
+  — see `Customer`.
+required:
+  - email
+  - phone
+  - first_name
+  - last_name
+properties:
+  email:
+    type: string
+    format: email
+    maxLength: 200
+    example: john.doe@example.com
+  phone:
+    type: string
+    description: E.164 phone number.
+    pattern: ^\+[1-9]\d{6,14}$
+    example: "+905551234567"
+  first_name:
+    type: string
+    minLength: 1
+    maxLength: 80
+    example: John
+  last_name:
+    type: string
+    minLength: 1
+    maxLength: 80
+    example: Doe
+  tckn:
+    type: [string, "null"]
+    pattern: ^\d{11}$
+    description: |
+      Turkish national ID number (11 digits). One of `tckn` or
+      `passport_no` is typically required by the tenant policy for
+      Turkish residents — the server enforces the tenant rule.
+    example: null
+  passport_no:
+    type: [string, "null"]
+    minLength: 5
+    maxLength: 30
+    description: Passport number for non-resident customers.
+    example: null
+  nationality:
+    type: [string, "null"]
+    minLength: 2
+    maxLength: 2
+    pattern: ^[A-Z]{2}$
+    description: ISO 3166-1 alpha-2 nationality code.
+    example: TR
+  date_of_birth:
+    type: [string, "null"]
+    format: date
+    example: 1985-03-15
+  license_number:
+    type: [string, "null"]
+    maxLength: 40
+    example: X9876543
+  license_issued_at:
+    type: [string, "null"]
+    format: date
+    example: 2010-04-01
+  license_expires_at:
+    type: [string, "null"]
+    format: date
+    example: 2030-04-01
+  language:
+    type: string
+    description: |
+      Preferred locale for transactional emails / SMS. Falls back to
+      `tenant.locale_default` when omitted.
+    default: tr_TR
+    example: tr_TR
+  marketing_consent:
+    type: boolean
+    default: false
+    description: KVKK marketing consent for the current tenant.
