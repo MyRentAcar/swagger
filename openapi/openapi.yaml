@@ -105,6 +105,8 @@ paths:
     $ref: ./paths/reservations.yaml#/byId
   /reservations/{reservation_number}/cancel:
     $ref: ./paths/reservations.yaml#/cancel
+  /reservations/{reservation_number}/payments:
+    $ref: ./paths/reservations.yaml#/payments
 
   /tenants/me:
     $ref: ./paths/tenants.yaml#/me
@@ -238,6 +240,14 @@ components:
       $ref: ./components/schemas/Reservation.yaml
     ReservationCreateRequest:
       $ref: ./components/schemas/ReservationCreateRequest.yaml
+    ReservationExtra:
+      $ref: ./components/schemas/ReservationExtra.yaml
+    ReservationDriver:
+      $ref: ./components/schemas/ReservationDriver.yaml
+    ReservationPayment:
+      $ref: ./components/schemas/ReservationPayment.yaml
+    ReservationStatusHistoryEntry:
+      $ref: ./components/schemas/ReservationStatusHistoryEntry.yaml
     AvailabilityRequest:
       $ref: ./components/schemas/AvailabilityRequest.yaml
     AvailabilityOffer:

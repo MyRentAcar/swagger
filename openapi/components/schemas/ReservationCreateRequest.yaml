@@ -67,3 +67,77 @@ properties:
   notes:
     type: [string, "null"]
     maxLength: 1000
+  extras:
+    type: array
+    description: |
+      Extras to attach to the reservation at create time. Each item
+      references a tenant `extras` catalogue row by `extra_id`; the
+      server snapshots `name`, `unit_price` and `currency_code` onto
+      the resulting `ReservationExtra` row. Omit or pass an empty
+      array for reservations without extras.
+    items:
+      type: object
+      required:
+        - extra_id
+        - quantity
+      additionalProperties: false
+      properties:
+        extra_id:
+          type: integer
+          format: int64
+          example: 17
+        quantity:
+          type: integer
+          minimum: 1
+          example: 1
+  drivers:
+    type: array
+    description: |
+      Drivers to attach to the reservation. When omitted the server
+      auto-creates a single primary-driver row from `customer`.
+      When supplied, exactly one entry must have `is_primary = true`
+      and every `customer_id` must belong to the caller's tenant.
+    items:
+      type: object
+      required:
+        - customer_id
+      additionalProperties: false
+      properties:
+        customer_id:
+          type: integer
+          format: int64
+          example: 4711
+        is_primary:
+          type: boolean
+          default: false
+          example: true
+  payment_method:
+    type: [string, "null"]
+    enum:
+      - cash
+      - card
+      - bank_transfer
+      - installment
+      - null
+    description: |
+      Customer-selected payment instrument at reservation time.
+      `null` defers the choice to pickup.
+    example: card
+  discount_amount:
+    type: string
+    pattern: ^\d+(\.\d{1,4})?$
+    default: "0"
+    description: |
+      Optional discount in the recomputed quote currency. The
+      server validates the amount against the tenant's discount
+      policy (max % / max absolute) before accepting it.
+    example: "0"
+  custom_fields:
+    type: [object, "null"]
+    description: |
+      Open-ended JSON bag for tenant-specific metadata (partner
+      booking refs, loyalty tags, integration ids, …). Stored as-is
+      on `Reservation.custom_fields`.
+    additionalProperties: true
+    example:
+      partner_booking_ref: BK-9921

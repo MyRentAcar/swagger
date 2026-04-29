@@ -7,6 +7,13 @@ description: |
   acceptance time and is the figure the customer agreed to pay. See
   ADR-019 and `docs/16-multi-currency-design.md` for the
   storage/display split.
+
+  Sprint 2.3 augments the aggregate with operational columns that the
+  Backoffice and B2B partners use to drive the reservation lifecycle
+  (`type`, `agent_user_id`, `source`, fee/tax/discount breakdown,
+  contract metadata, internal notes, custom fields) and four
+  embeddable sub-resources (`extras`, `drivers`, `payments`,
+  `status_history`) opt-in via `?include=`.
 required:
   - id
   - reservation_number
@@ -181,6 +188,150 @@ properties:
       from the pickup location's branch). `null` means tenant-wide
       (HQ). See `Branch` schema.
     example: 12
+  type:
+    type: string
+    enum:
+      - rentacar
+      - transfer
+    default: rentacar
+    description: |
+      Reservation product type. `rentacar` is the default car-rental
+      flow; `transfer` flags a point-to-point transfer reservation
+      (drop-fee semantics, no rental window pricing).
+    example: rentacar
+  agent_user_id:
+    type: [integer, "null"]
+    format: int64
+    description: |
+      FK to the Backoffice user (sales agent) that owns the
+      reservation. `null` for self-service web/mobile bookings and
+      for B2B agency rows (the Passport client identifies the
+      partner instead).
+    example: 42
+  source:
+    type: string
+    enum:
+      - online
+      - backoffice
+      - phone
+      - b2b
+    default: backoffice
+    description: |
+      Origin of the reservation row. Distinct from `channel` (which
+      tracks the customer-facing surface): `source` records the
+      operational entry point used by staff or partners. `online`
+      maps to the public web/mobile storefront, `backoffice` to a
+      manual sales-agent entry, `phone` to a call-centre booking,
+      and `b2b` to the Passport partner channel.
+    example: backoffice
+  extras_total:
+    type: string
+    pattern: ^\d+(\.\d{1,4})?$
+    default: "0"
+    description: |
+      Sum of `ReservationExtra.total` across all extras attached to
+      the reservation, in `quote_currency`. Recomputed server-side
+      whenever extras are added or removed.
+    example: "150.00"
+  drop_fee_amount:
+    type: string
+    pattern: ^\d+(\.\d{1,4})?$
+    default: "0"
+    description: |
+      One-way drop fee in `quote_currency` (mirrors `DropFee` engine
+      output). `"0"` for same-location returns.
+    example: "350.00"
+  taxes:
+    type: string
+    pattern: ^\d+(\.\d{1,4})?$
+    default: "0"
+    description: |
+      Tax amount applied on top of the base + extras + drop fee, in
+      `quote_currency`. The tax engine's per-line breakdown is
+      captured inside `quote_breakdown`.
+    example: "120.50"
+  discount_amount:
+    type: string
+    pattern: ^\d+(\.\d{1,4})?$
+    default: "0"
+    description: |
+      Discount amount applied to the reservation in `quote_currency`
+      (already reflected in `quote_total_amount`).
+    example: "1087.50"
+  payment_method:
+    type: [string, "null"]
+    enum:
+      - cash
+      - card
+      - bank_transfer
+      - installment
+      - null
+    description: |
+      Customer-selected payment instrument captured at reservation
+      time. `null` when the choice is deferred to pickup.
+    example: card
+  contract_no:
+    type: [string, "null"]
+    maxLength: 40
+    description: |
+      Backoffice-assigned printed contract number (the document the
+      customer signs at pickup). Distinct from `reservation_number`,
+      which is the platform's public identifier. `null` until a
+      contract is generated.
+    example: SZL-2026-04711
+  internal_notes:
+    type: [string, "null"]
+    maxLength: 2000
+    description: |
+      Free-text notes for Backoffice / partner staff. Never shown
+      to the end customer; distinct from the customer-visible
+      `notes` field.
+    example: VIP — please pre-clean and present with full tank.
+  custom_fields:
+    type: [object, "null"]
+    description: |
+      Open-ended JSON bag for tenant-specific metadata (loyalty
+      tags, partner reference numbers, integration ids, …). Shape
+      is intentionally undefined — clients must tolerate unknown
+      keys.
+    additionalProperties: true
+    example:
+      partner_booking_ref: BK-9921
+      loyalty_tier: gold
+  extras:
+    type: array
+    description: |
+      Extras attached to the reservation. Embedded only when the
+      caller opts in via `?include=extras`; omitted otherwise. See
+      `ReservationExtra`.
+    items:
+      $ref: ./ReservationExtra.yaml
+  drivers:
+    type: array
+    description: |
+      Drivers assigned to the reservation (always at least one with
+      `is_primary = true`). Embedded only when the caller opts in
+      via `?include=drivers`; omitted otherwise. See
+      `ReservationDriver`.
+    items:
+      $ref: ./ReservationDriver.yaml
+  payments:
+    type: array
+    description: |
+      Payment lines recorded against the reservation. Embedded only
+      when the caller opts in via `?include=payments`; omitted
+      otherwise. See `ReservationPayment`.
+    items:
+      $ref: ./ReservationPayment.yaml
+  status_history:
+    type: array
+    description: |
+      Status transition log for the reservation, oldest first.
+      Embedded only when the caller opts in via
+      `?include=status_history`; omitted otherwise. See
+      `ReservationStatusHistoryEntry`.
+    items:
+      $ref: ./ReservationStatusHistoryEntry.yaml
   created_at:
     type: string
     format: date-time

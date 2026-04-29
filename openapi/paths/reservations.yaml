@@ -238,3 +238,124 @@ cancel:
           application/problem+json:
             schema:
               $ref: ../components/schemas/Error.yaml
+
+payments:
+  parameters:
+    - in: path
+      name: reservation_number
+      required: true
+      description: Public reservation number (e.g. `RNT-2026-001234`).
+      schema:
+        type: string
+        pattern: ^RNT-\d{4}-\d{6}$
+  post:
+    operationId: reservations.payments.create
+    summary: Record a payment against a reservation
+    description: |
+      Logs a payment line against the reservation. Intended for the
+      B2B partner notification flow ("we collected the customer's
+      payment, please record it") — Backoffice writes payments
+      DB-direct per ADR-005 / ADR-020. The server validates that
+      `currency_code` matches `Reservation.quote_currency`,
+      recomputes `Reservation.paid_amount` and re-derives
+      `Reservation.payment_status` (`unpaid` / `partial` / `paid`)
+      from the cumulative captured total. Already-cancelled
+      reservations return `409`.
+    tags: [Reservations]
+    security:
+      - hmacAuth: []
+        sanctumBearer: []
+    parameters:
+      - $ref: ../components/parameters/XTenantId.yaml
+      - $ref: ../components/parameters/XAppId.yaml
+      - $ref: ../components/parameters/XTimestamp.yaml
+      - $ref: ../components/parameters/XNonce.yaml
+      - $ref: ../components/parameters/XSignature.yaml
+      - $ref: ../components/parameters/XApiVersion.yaml
+      - name: Idempotency-Key
+        in: header
+        required: true
+        description: |
+          Client-generated ULID. Required to avoid double-recording
+          a payment on retry. See common parameter `IdempotencyKey`
+          for full semantics.
+        schema:
+          type: string
+          pattern: ^[0-9A-HJKMNP-TV-Z]{26}$
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - amount
+              - currency_code
+              - method
+            additionalProperties: false
+            properties:
+              amount:
+                type: string
+                pattern: ^\d+(\.\d{1,4})?$
+                description: Payment amount in `currency_code`.
+                example: "6512.50"
+              currency_code:
+                type: string
+                minLength: 3
+                maxLength: 3
+                pattern: ^[A-Z]{3}$
+                description: |
+                  ISO 4217 storage currency. Must match the parent
+                  `Reservation.quote_currency`.
+                example: TRY
+              method:
+                type: string
+                enum:
+                  - cash
+                  - card
+                  - bank_transfer
+                  - installment
+                example: card
+              transaction_ref:
+                type: [string, "null"]
+                maxLength: 128
+                description: |
+                  External processor reference (gateway transaction
+                  id, bank receipt no, terminal slip no…).
+                example: VISA-AUTH-7HJK4P
+              paid_at:
+                type: [string, "null"]
+                format: date-time
+                description: |
+                  Settlement timestamp. Defaults to the server time
+                  when omitted; supply it when back-dating an
+                  out-of-band payment.
+                example: 2026-05-10T09:45:00Z
+    responses:
+      '201':
+        description: Payment recorded.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: ../components/schemas/ReservationPayment.yaml
+      '401':
+        $ref: ../components/responses/Unauthorized.yaml
+      '404':
+        $ref: ../components/responses/NotFound.yaml
+      '409':
+        description: |
+          Conflict — the reservation is cancelled or in a state that
+          forbids further payments, or the idempotency key has been
+          reused with a different body hash.
+        content:
+          application/problem+json:
+            schema:
+              $ref: ../components/schemas/Error.yaml
+      '422':
+        $ref: ../components/responses/UnprocessableEntity.yaml
+      '429':
+        $ref: ../components/responses/TooManyRequests.yaml

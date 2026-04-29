@@ -187,6 +187,7 @@ tracks which sprint's endpoints are reflected in `openapi/openapi.yaml`.
 | Sprint 2.1 branch concept                    | +1        | Synced  |
 | Sprint 2.2 customer KYC + addresses/documents| schemas   | Synced  |
 | Sprint 2.5 service + insurance + stop-sale   | schemas   | Synced  |
+| Sprint 2.3 reservation core schemas + payments| +1       | Synced  |
 
 ### Sprint 1.5 architecture refactors
 
@@ -331,3 +332,59 @@ Counts after Sprint 2.5: operations 21 (unchanged), schemas
 34→37 (`VehicleService`, `InsuranceCompany`,
 `VehicleInsurance`), parameters 34 (unchanged), tags 11
 (unchanged).
+
+### Sprint 2.3 — Reservation core (extras + drivers + payments + status history)
+
+Sprint 2.3 fleshes out the Reservation aggregate so the
+Backoffice and B2B partners can drive the full reservation
+lifecycle through the public surface:
+
+- **`ReservationExtra` schema** — line-item extra (child seat,
+  GPS, additional driver…) with snapshot `name` / `unit_price`
+  / `currency_code`, `quantity`, server-computed `total`, and
+  optional FK back to the catalogue (`extra_id`, nullable so a
+  deleted catalogue row leaves the line intact).
+- **`ReservationDriver` schema** — driver assignment with
+  `customer_id`, `is_primary`, optional `license_verified_at`
+  and an embeddable `customer` relation
+  (`?include=drivers.customer`).
+- **`ReservationPayment` schema** — payment line with `amount`,
+  `currency_code`, `method` (`cash` / `card` / `bank_transfer`
+  / `installment`), `status` (`pending` / `captured` /
+  `refunded` / `failed`), `transaction_ref`, `paid_at`.
+- **`ReservationStatusHistoryEntry` schema** — append-only
+  status transition log (`from_status` → `to_status`,
+  `changed_by_user_id`, `reason`, `changed_at`); the creation
+  event has `from_status = null`.
+- **`Reservation` schema extension** — operational columns
+  (`type` `rentacar` / `transfer`, `agent_user_id`, `source`
+  `online` / `backoffice` / `phone` / `b2b`, `extras_total`,
+  `drop_fee_amount`, `taxes`, `discount_amount`,
+  `payment_method`, `contract_no`, `internal_notes`,
+  `custom_fields`) plus the four embeddable arrays (`extras`,
+  `drivers`, `payments`, `status_history`) opt-in via
+  `?include=`.
+- **`ReservationCreateRequest` extension** — bulk
+  `extras[]` (extra_id + quantity) and `drivers[]` (customer_id
+  + is_primary) on create, plus `payment_method`,
+  `discount_amount` and `custom_fields`.
+- **`POST /reservations/{reservation_number}/payments`** —
+  HMAC-authenticated B2B partner notification flow ("we
+  received the customer's payment, please record it"). The
+  Backoffice still writes payments DB-direct per ADR-005 /
+  ADR-020. Idempotent via `Idempotency-Key`. The cancel
+  endpoint shipped in Sprint 1.5 already covers the partner
+  cancel use case (`PATCH /reservations/{reservation_number}/cancel`).
+
+Reservation extra / driver / payment / status-history CRUD on
+existing reservations remains a Backoffice DB-direct concern
+per ADR-005 / ADR-020. The schemas are exposed publicly only
+because they are embeddable on the `Reservation` aggregate
+and / or surface on the new payment-notification endpoint.
+
+Counts after Sprint 2.3: operations 21→22 (`POST
+/reservations/{reservation_number}/payments`; cancel was
+already shipped in Sprint 1.5), schemas 37→41
+(`ReservationExtra`, `ReservationDriver`,
+`ReservationPayment`, `ReservationStatusHistoryEntry`),
+parameters 34 (unchanged), tags 11 (unchanged).

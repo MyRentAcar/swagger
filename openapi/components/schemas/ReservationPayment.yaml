@@ -1,0 +1,81 @@
+type: object
+description: |
+  Reservation payment record (mirrors `reservation_payments`,
+  `docs/03-database-schema.md` §10.x). Each row captures one
+  customer payment against the parent reservation; the cumulative
+  sum drives `Reservation.paid_amount` and `Reservation.payment_status`.
+  `amount` and `currency_code` are stored at write time and never
+  re-converted. Payment CRUD is Backoffice-only (DB-direct per
+  ADR-005 / ADR-020) **except** for the B2B partner notification
+  flow on `POST /reservations/{reservation_number}/payments` —
+  partners use that endpoint to log payments they collected on the
+  customer's behalf.
+required:
+  - id
+  - reservation_id
+  - amount
+  - currency_code
+  - method
+  - status
+properties:
+  id:
+    type: integer
+    format: int64
+    readOnly: true
+    example: 9901
+  reservation_id:
+    type: integer
+    format: int64
+    readOnly: true
+    example: 123456
+  amount:
+    type: string
+    pattern: ^\d+(\.\d{1,4})?$
+    description: Payment amount in `currency_code`.
+    example: "6512.50"
+  currency_code:
+    type: string
+    minLength: 3
+    maxLength: 3
+    pattern: ^[A-Z]{3}$
+    description: |
+      ISO 4217 storage currency the payment is denominated in.
+      Matches the parent `Reservation.quote_currency` at write time.
+    example: TRY
+  method:
+    type: string
+    enum:
+      - cash
+      - card
+      - bank_transfer
+      - installment
+    description: Payment instrument used by the customer.
+    example: card
+  status:
+    type: string
+    enum:
+      - pending
+      - captured
+      - refunded
+      - failed
+    description: |
+      Lifecycle state of the payment. `pending` covers
+      authorization-only captures; `captured` is the terminal
+      success state; `refunded` zeroes the line for accounting;
+      `failed` records a declined attempt for audit.
+    example: captured
+  transaction_ref:
+    type: [string, "null"]
+    maxLength: 128
+    description: |
+      External processor reference (gateway transaction id, bank
+      receipt no, terminal slip no…). Free-form because the values
+      vary by `method`.
+    example: VISA-AUTH-7HJK4P
+  paid_at:
+    type: [string, "null"]
+    format: date-time
+    description: |
+      Timestamp the payment was settled. `null` while the row is
+      still `pending` or `failed`.
+    example: 2026-05-10T09:45:00Z

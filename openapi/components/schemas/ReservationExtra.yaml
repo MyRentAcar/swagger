@@ -1,0 +1,75 @@
+type: object
+description: |
+  Reservation extra line item (mirrors `reservation_extras`,
+  `docs/03-database-schema.md` §10.x). Each row snapshots an extra
+  catalogue entry at reservation time so the line stays intact even
+  if the underlying extra is later renamed, repriced, or removed.
+  `name`, `unit_price` and `currency_code` are the snapshot fields;
+  `total = quantity × unit_price` is computed server-side and
+  stored. Extra CRUD against the catalogue is Backoffice-only
+  (DB-direct per ADR-005 / ADR-020); this schema is exposed publicly
+  because it is embeddable on the `Reservation` aggregate and ships
+  alongside `ReservationCreateRequest.extras[]`.
+required:
+  - id
+  - reservation_id
+  - name
+  - quantity
+  - unit_price
+  - total
+  - currency_code
+properties:
+  id:
+    type: integer
+    format: int64
+    readOnly: true
+    example: 8801
+  reservation_id:
+    type: integer
+    format: int64
+    readOnly: true
+    example: 123456
+  extra_id:
+    type: [integer, "null"]
+    format: int64
+    description: |
+      FK to the tenant `extras` catalogue row that backed this line.
+      `null` once the catalogue row is deleted — the snapshot fields
+      (`name`, `unit_price`) preserve the line for audit and billing.
+    example: 17
+  name:
+    type: string
+    minLength: 1
+    maxLength: 200
+    description: |
+      Snapshot of the extra's display name at reservation time.
+      Preserved even if the catalogue row is later renamed or
+      removed.
+    example: Child seat (0–4 yrs)
+  quantity:
+    type: integer
+    minimum: 1
+    description: Number of units booked.
+    example: 1
+  unit_price:
+    type: string
+    pattern: ^\d+(\.\d{1,4})?$
+    description: Per-unit price snapshot in `currency_code`.
+    example: "150.00"
+  total:
+    type: string
+    pattern: ^\d+(\.\d{1,4})?$
+    description: |
+      Server-computed line total in `currency_code`
+      (`quantity × unit_price`). Re-emitted on every read so clients
+      do not have to recompute.
+    example: "150.00"
+  currency_code:
+    type: string
+    minLength: 3
+    maxLength: 3
+    pattern: ^[A-Z]{3}$
+    description: |
+      ISO 4217 storage currency the line is denominated in. Matches
+      the parent `Reservation.quote_currency` at write time.
+    example: TRY

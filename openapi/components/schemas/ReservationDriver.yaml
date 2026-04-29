@@ -1,0 +1,53 @@
+type: object
+description: |
+  Reservation driver assignment (mirrors `reservation_drivers`,
+  `docs/03-database-schema.md` §10.x). A reservation always has at
+  least one driver with `is_primary = true`; secondary drivers are
+  optional. `customer_id` is tenant-scoped and mirrors the rules
+  enforced on `ReservationCreateRequest.customer`. The optional
+  `customer` relation is embedded only when the request opts in via
+  `?include=drivers.customer`. Driver CRUD on an existing
+  reservation is Backoffice-only (DB-direct per ADR-005 / ADR-020);
+  this schema is exposed publicly because it is embeddable on the
+  `Reservation` aggregate and ships alongside
+  `ReservationCreateRequest.drivers[]`.
+required:
+  - id
+  - reservation_id
+  - customer_id
+  - is_primary
+properties:
+  id:
+    type: integer
+    format: int64
+    readOnly: true
+    example: 7701
+  reservation_id:
+    type: integer
+    format: int64
+    readOnly: true
+    example: 123456
+  customer_id:
+    type: integer
+    format: int64
+    description: Tenant-scoped FK to the `customers` row backing this driver.
+    example: 4711
+  customer:
+    description: |
+      Embedded customer snapshot. Present only when the caller opts
+      in via `?include=drivers.customer`; omitted otherwise.
+    $ref: ./Customer.yaml
+  is_primary:
+    type: boolean
+    description: |
+      Exactly one driver per reservation has `is_primary = true`
+      (the contract holder). Secondary drivers are optional.
+    example: true
+  license_verified_at:
+    type: [string, "null"]
+    format: date-time
+    description: |
+      Timestamp the Backoffice operator verified the driver's
+      licence against the on-file KYC document. `null` when the
+      licence has not (yet) been verified for this reservation.
+    example: 2026-05-09T08:30:00Z
