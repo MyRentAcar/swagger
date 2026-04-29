@@ -254,3 +254,9 @@ components:
       $ref: ./components/schemas/AgencyQuota.yaml
     Branch:
       $ref: ./components/schemas/Branch.yaml
+    VehicleService:
+      $ref: ./components/schemas/VehicleService.yaml
+    InsuranceCompany:
+      $ref: ./components/schemas/InsuranceCompany.yaml
+    VehicleInsurance:
+      $ref: ./components/schemas/VehicleInsurance.yaml

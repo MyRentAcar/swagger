@@ -186,6 +186,7 @@ tracks which sprint's endpoints are reflected in `openapi/openapi.yaml`.
 | Sprint 1.5 multi-currency display            | schema    | Synced  |
 | Sprint 2.1 branch concept                    | +1        | Synced  |
 | Sprint 2.2 customer KYC + addresses/documents| schemas   | Synced  |
+| Sprint 2.5 service + insurance + stop-sale   | schemas   | Synced  |
 
 ### Sprint 1.5 architecture refactors
 
@@ -289,3 +290,44 @@ Counts after Sprint 2.2: operations 21 (unchanged), schemas
 30→34 (`CustomerAddress`, `CustomerAddressInput`,
 `CustomerDocument`, `CustomerDocumentInput`), parameters 34
 (unchanged), tags 11 (unchanged).
+
+### Sprint 2.5 — Service + insurance + stop-sale transparency
+
+Sprint 2.5 closes the off-fleet visibility gap by exposing the
+read-only side of the new service / insurance tables and adding
+an opt-in transparency field on availability search:
+
+- **`VehicleService` schema** — workshop / muayene / repair
+  records (`maintenance`, `repair`, `inspection`, `insurance`)
+  with `[starts_at, ends_at]`, optional `km_at_service`, `cost`,
+  `currency_code`, `vendor` and free-text `notes`. Mirrors the
+  new `vehicle_services` table; treated by the availability
+  engine as a hard block on the unit (ADR-021).
+- **`InsuranceCompany` schema** — tenant-scoped insurer
+  directory entry (`name`, `contact_phone`, `contact_email`,
+  `is_active`).
+- **`VehicleInsurance` schema** — per-plate policy term with
+  `policy_no`, `coverage_type` (`kasko` / `trafik` / `imm`),
+  `[starts_at, expires_at]`, optional `premium`,
+  `currency_code`, `deductible`, plus an embeddable
+  `insurance_company` relation (opt-in via `?include=`).
+- **`AvailabilityOffer.unavailability_reasons`** — opt-in
+  informational array (one entry per reservation / stop-sale /
+  service window intersecting the request) so partner
+  storefronts can debug why a template's `units_available`
+  dropped. Empty / null on fully-available templates; never
+  carries PII (reservation rows expose only the conflict
+  window).
+- **`StopSale.branch_id`** — nullable branch scoping for
+  stop-sale records, matching the Sprint 2.1 branch
+  propagation.
+
+Service / insurance / stop-sale CRUD is **not** in the public
+API — per ADR-005 / ADR-020 the Backoffice writes these tables
+directly. The schemas are exposed publicly only because they
+surface in `unavailability_reasons` and on the read paths.
+
+Counts after Sprint 2.5: operations 21 (unchanged), schemas
+34→37 (`VehicleService`, `InsuranceCompany`,
+`VehicleInsurance`), parameters 34 (unchanged), tags 11
+(unchanged).

@@ -1,0 +1,85 @@
+type: object
+description: |
+  Vehicle insurance policy (mirrors `vehicle_insurances`,
+  `docs/03-database-schema.md` §4.9). One row per policy term per
+  plate; the availability engine warns on policies whose
+  `expires_at` falls inside the request window (informational, not a
+  hard block — operators may still rent an expiring vehicle). CRUD
+  is Backoffice-only (DB-direct per ADR-005 / ADR-020); this schema
+  is read-only on the public API.
+required:
+  - id
+  - vehicle_unit_id
+  - insurance_company_id
+  - policy_no
+  - coverage_type
+  - starts_at
+  - expires_at
+properties:
+  id:
+    type: integer
+    format: int64
+    example: 5501
+  vehicle_unit_id:
+    type: integer
+    format: int64
+    description: Plate (vehicle_unit) the policy is bound to.
+    example: 142
+  insurance_company_id:
+    type: integer
+    format: int64
+    description: FK to `InsuranceCompany.id`.
+    example: 7
+  insurance_company:
+    description: |
+      Optional embedded insurer record, surfaced when the consumer
+      passes `?include=insurance_company` (mirrors the embeddable
+      relation pattern used by `Customer`).
+    $ref: ./InsuranceCompany.yaml
+  policy_no:
+    type: string
+    maxLength: 64
+    description: Insurer-assigned policy number (verbatim).
+    example: ACME-2026-000123
+  coverage_type:
+    type: string
+    enum:
+      - kasko
+      - trafik
+      - imm
+    description: |
+      Coverage tier. `trafik` = mandatory third-party liability,
+      `kasko` = comprehensive own-damage, `imm` = İhtiyari Mali
+      Mesuliyet (excess third-party).
+    example: kasko
+  starts_at:
+    type: string
+    format: date
+    description: Inclusive policy start date.
+    example: 2026-04-01
+  expires_at:
+    type: string
+    format: date
+    description: Inclusive policy expiry date.
+    example: 2027-03-31
+  premium:
+    type: [number, "null"]
+    format: float
+    minimum: 0
+    description: Annual premium amount in `currency_code`.
+    example: 18500.00
+  currency_code:
+    type: [string, "null"]
+    minLength: 3
+    maxLength: 3
+    pattern: ^[A-Z]{3}$
+    description: ISO 4217 currency for `premium` and `deductible`.
+    example: TRY
+  deductible:
+    type: [number, "null"]
+    format: float
+    minimum: 0
+    description: |
+      Customer-borne deductible / muafiyet on a covered claim,
+      denominated in `currency_code`.
+    example: 5000.00

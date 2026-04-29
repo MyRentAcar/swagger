@@ -1,0 +1,39 @@
+type: object
+description: |
+  Insurance company / underwriter directory entry (mirrors
+  `insurance_companies`, `docs/03-database-schema.md` §4.8).
+  Tenant-scoped lookup table referenced by every `VehicleInsurance`
+  policy. Public API surface is read-only — the Backoffice owns CRUD
+  per ADR-005 / ADR-020.
+required:
+  - id
+  - name
+  - is_active
+properties:
+  id:
+    type: integer
+    format: int64
+    example: 7
+  name:
+    type: string
+    maxLength: 200
+    description: Display name of the insurer (verbatim, no localization).
+    example: Acme Sigorta A.Ş.
+  contact_phone:
+    type: [string, "null"]
+    maxLength: 32
+    description: E.164 customer-service phone number where applicable.
+    example: "+902125550199"
+  contact_email:
+    type: [string, "null"]
+    format: email
+    maxLength: 200
+    example: claims@acme-sigorta.example.com
+  is_active:
+    type: boolean
+    default: true
+    description: |
+      Inactive insurers are hidden from new policy creation in the
+      Backoffice but remain referenced by historical
+      `VehicleInsurance` rows.
+    example: true

@@ -70,6 +70,15 @@ properties:
       type: integer
       format: int64
     example: [10, 11]
+  branch_id:
+    type: [integer, "null"]
+    format: int64
+    description: |
+      Tenant branch the stop-sale is scoped to. `null` means
+      tenant-wide (every branch); a value pins the block to a
+      single branch (only reservations whose pickup location
+      belongs to that branch are matched). See `Branch` schema.
+    example: 12
   reason:
     type: string
     enum:

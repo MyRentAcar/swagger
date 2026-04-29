@@ -28,3 +28,54 @@ properties:
       drop-fee component (when applicable) is included in
       `pricing.total_amount`.
     example: false
+  unavailability_reasons:
+    type: [array, "null"]
+    description: |
+      Informational, partner-debug breakdown of the conflicts that
+      reduced `units_available` below the fleet size for this
+      template. Surfaced only when the consumer passes
+      `?include=unavailability_reasons` on `POST /search/availability`
+      — empty / null on a fully-available template. Each entry is a
+      single conflict window (one row per reservation, stop-sale or
+      service block intersecting the request window). The platform
+      never emits PII here; reservation rows expose only the conflict
+      window, not the customer.
+    items:
+      type: object
+      required:
+        - type
+        - starts_at
+      properties:
+        type:
+          type: string
+          enum:
+            - reservation
+            - stop_sale
+            - service
+          description: |
+            Source of the block. `stop_sale` carries a coded
+            `reason` (see `StopSale.reason`); `service` carries a
+            free-text `reason` derived from
+            `VehicleService.notes`/`type`; `reservation` rows omit
+            `reason` entirely.
+          example: stop_sale
+        starts_at:
+          type: string
+          format: date-time
+          description: Inclusive lower bound of the conflict window.
+          example: 2026-05-10T08:00:00Z
+        ends_at:
+          type: [string, "null"]
+          format: date-time
+          description: |
+            Inclusive upper bound of the conflict window. `null`
+            mirrors an open-ended block (e.g. an unclosed service
+            record or a stop-sale without `end_date`).
+          example: 2026-05-12T18:00:00Z
+        reason:
+          type: [string, "null"]
+          description: |
+            Coded or free-text label describing the conflict. Set
+            for `stop_sale` and `service`; always `null` for
+            `reservation`.
+          example: maintenance

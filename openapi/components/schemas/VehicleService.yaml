@@ -1,0 +1,80 @@
+type: object
+description: |
+  Vehicle service / workshop record (mirrors `vehicle_services`,
+  `docs/03-database-schema.md` §4.7). Captures every off-fleet event
+  for a plate — scheduled maintenance, accident repair, periodic
+  inspection (muayene), or insurance-related downtime. The
+  availability engine treats any service whose `[starts_at, ends_at]`
+  window intersects the request window as a hard block on the unit
+  (see ADR-021). Service CRUD lives in the Backoffice (DB-direct per
+  ADR-005 / ADR-020); this schema is read-only on the public API and
+  is surfaced only as an `unavailability_reasons` entry on
+  `AvailabilityOffer`.
+required:
+  - id
+  - vehicle_unit_id
+  - type
+  - starts_at
+properties:
+  id:
+    type: integer
+    format: int64
+    example: 901
+  vehicle_unit_id:
+    type: integer
+    format: int64
+    description: Plate (vehicle_unit) the service is logged against.
+    example: 142
+  type:
+    type: string
+    enum:
+      - maintenance
+      - repair
+      - inspection
+      - insurance
+    description: |
+      Service category. `maintenance` is scheduled upkeep,
+      `repair` is incident-driven, `inspection` is periodic
+      muayene, `insurance` covers insurer-driven downtime
+      (e.g. expertiz, total-loss processing).
+    example: maintenance
+  starts_at:
+    type: string
+    format: date-time
+    description: Inclusive lower bound of the service window (tenant timezone).
+    example: 2026-05-02T08:00:00Z
+  ends_at:
+    type: [string, "null"]
+    format: date-time
+    description: |
+      Inclusive upper bound of the service window. `null` while the
+      service is open-ended (the unit remains blocked until closed).
+    example: 2026-05-02T17:00:00Z
+  km_at_service:
+    type: [integer, "null"]
+    minimum: 0
+    description: Odometer reading captured when the service started.
+    example: 48230
+  cost:
+    type: [number, "null"]
+    format: float
+    minimum: 0
+    description: Total invoiced cost in `currency_code`.
+    example: 1450.75
+  currency_code:
+    type: [string, "null"]
+    minLength: 3
+    maxLength: 3
+    pattern: ^[A-Z]{3}$
+    description: ISO 4217 currency for `cost`.
+    example: TRY
+  vendor:
+    type: [string, "null"]
+    maxLength: 200
+    description: Workshop / vendor name (free text).
+    example: Yetkili Servis A.Ş.
+  notes:
+    type: [string, "null"]
+    maxLength: 5000
+    description: Operator-supplied free-text note shown in the Backoffice.
+    example: Yağ + filtre değişimi, fren balata kontrolü.
