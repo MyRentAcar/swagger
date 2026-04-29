@@ -1,0 +1,70 @@
+type: object
+description: |
+  Customer postal address (mirrors `customer_addresses`,
+  `docs/03-database-schema.md`). One customer may have many
+  addresses; at most one per `type` is flagged `is_default`. Address
+  CRUD is a Backoffice-only concern (DB-direct per ADR-005 /
+  ADR-020); the schema is exposed publicly because it is embeddable
+  on the `Customer` aggregate via `?include=addresses` and it ships
+  alongside `CustomerInput` on `POST /reservations` for first-time
+  customer onboarding.
+required:
+  - id
+  - type
+  - address_line1
+  - city
+  - country_code
+properties:
+  id:
+    type: integer
+    format: int64
+    readOnly: true
+    example: 8801
+  customer_id:
+    type: integer
+    format: int64
+    readOnly: true
+    example: 4711
+  type:
+    type: string
+    enum:
+      - home
+      - work
+      - billing
+    default: home
+    example: home
+  address_line1:
+    type: string
+    maxLength: 255
+    example: Yeşilköy Mah. Atatürk Cd. No:1
+  address_line2:
+    type: [string, "null"]
+    maxLength: 255
+    example: Daire 4
+  city:
+    type: string
+    maxLength: 100
+    example: İstanbul
+  district:
+    type: [string, "null"]
+    maxLength: 100
+    example: Bakırköy
+  country_code:
+    type: string
+    minLength: 2
+    maxLength: 2
+    pattern: ^[A-Z]{2}$
+    description: ISO 3166-1 alpha-2 country code.
+    example: TR
+  postal_code:
+    type: [string, "null"]
+    maxLength: 16
+    example: "34149"
+  is_default:
+    type: boolean
+    default: false
+    description: |
+      True for the customer's default address of the given `type`.
+      At most one address per `(customer_id, type)` may carry this
+      flag; the server enforces the constraint on write.
+    example: true

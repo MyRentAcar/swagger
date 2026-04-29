@@ -4,13 +4,17 @@ description: |
   `GET /customers/me`. PII fields (`tckn`, `passport_no`,
   `license_number`, `date_of_birth`) are emitted masked — only the
   customer themselves and Backoffice (which talks to the database
-  directly) see the unmasked values.
+  directly) see the unmasked values. Sprint 2.2 adds B2B / KYC
+  fields (`type`, `tax_id`, `company_name`, `gender`, extended
+  driver-licence metadata, `source`) and the embeddable
+  `addresses` / `documents` relations (opt-in via `?include=`).
 required:
   - id
   - email
   - phone
   - first_name
   - last_name
+  - type
 properties:
   id:
     type: integer
@@ -94,3 +98,74 @@ properties:
       tenant-wide (HQ); a value pins ownership to that branch. See
       `Branch` schema.
     example: 12
+  type:
+    type: string
+    enum:
+      - individual
+      - corporate
+    default: individual
+    description: |
+      Customer type. `individual` is the default B2C row;
+      `corporate` flags a B2B / fleet customer for which `tax_id`
+      and `company_name` are typically populated.
+    example: individual
+  tax_id:
+    type: [string, "null"]
+    maxLength: 32
+    description: |
+      Tax registration number for corporate customers (Türkiye:
+      VKN, 10 digits). `null` for individual customers.
+    example: null
+  company_name:
+    type: [string, "null"]
+    maxLength: 200
+    description: Registered company name for corporate customers; `null` otherwise.
+    example: null
+  gender:
+    type: [string, "null"]
+    enum:
+      - male
+      - female
+      - other
+      - unspecified
+      - null
+    description: Self-declared gender; `null` when the customer has not provided one.
+    example: unspecified
+  license_class:
+    type: [string, "null"]
+    maxLength: 16
+    description: |
+      Driver licence class / category (e.g. `B`, `B+CE`, `D`).
+      Free-form because country systems differ; the Backoffice
+      validates per tenant policy.
+    example: B
+  license_country:
+    type: [string, "null"]
+    minLength: 2
+    maxLength: 2
+    pattern: ^[A-Z]{2}$
+    description: ISO 3166-1 alpha-2 country code that issued the driver licence.
+    example: TR
+  source:
+    type: [string, "null"]
+    maxLength: 32
+    description: |
+      Acquisition / channel hint for analytics (e.g. `online`,
+      `walk-in`, `b2b`, `referral`). Free-form; the Backoffice
+      curates the controlled vocabulary per tenant.
+    example: online
+  addresses:
+    type: array
+    description: |
+      Customer addresses. Embedded only when the request opts in via
+      `?include=addresses`; omitted otherwise. See `CustomerAddress`.
+    items:
+      $ref: ./CustomerAddress.yaml
+  documents:
+    type: array
+    description: |
+      Customer KYC documents. Embedded only when the request opts in
+      via `?include=documents`; omitted otherwise. See
+      `CustomerDocument`.
+    items:
+      $ref: ./CustomerDocument.yaml

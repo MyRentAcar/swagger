@@ -36,7 +36,25 @@ properties:
       same-location drop-off (`pickup_location_id`).
     example: 11
   customer:
-    $ref: ./CustomerInput.yaml
+    description: |
+      Either a full `CustomerInput` payload (the server upserts the
+      customer keyed on `(tenant_id, email)`) or a reference to an
+      existing customer via `{ "id": <int64> }`. The reference form
+      is intended for B2B agencies that maintain their own customer
+      catalogue and link existing rows to new reservations; the
+      server validates the referenced customer belongs to the
+      caller's tenant.
+    oneOf:
+      - $ref: ./CustomerInput.yaml
+      - type: object
+        required:
+          - id
+        properties:
+          id:
+            type: integer
+            format: int64
+            example: 4711
+        additionalProperties: false
   branch_id:
     type: [integer, "null"]
     format: int64

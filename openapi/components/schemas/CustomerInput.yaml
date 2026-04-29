@@ -34,9 +34,17 @@ properties:
     example: Doe
   tckn:
     type: [string, "null"]
-    pattern: ^\d{11}$
+    pattern: ^[1-9]\d{10}$
     description: |
-      Turkish national ID number (11 digits). One of `tckn` or
+      Türkiye Cumhuriyeti Kimlik Numarası (TCKN) — 11 digits, the
+      first digit is non-zero. The regex enforces format only; the
+      authoritative checksum is validated server-side:
+
+        - 10th digit: `((d1+d3+d5+d7+d9) * 7 - (d2+d4+d6+d8)) mod 10`
+        - 11th digit: `(d1+d2+...+d10) mod 10`
+
+      MerNIS / NVI live verification is deferred to Faz 2 — Sprint
+      2.2 ships the algorithmic checksum only. One of `tckn` or
       `passport_no` is typically required by the tenant policy for
       Turkish residents — the server enforces the tenant rule.
     example: null
@@ -87,3 +95,70 @@ properties:
       Optional tenant branch the customer is bound to. Omit (or send
       `null`) for a tenant-wide (HQ) record. See `Branch` schema.
     example: 12
+  type:
+    type: string
+    enum:
+      - individual
+      - corporate
+    default: individual
+    description: |
+      Customer type. Corporate customers are expected to provide
+      `tax_id` and `company_name`; the server enforces the
+      conditional requirement on write.
+    example: individual
+  tax_id:
+    type: [string, "null"]
+    maxLength: 32
+    description: Tax registration number for corporate customers (Türkiye VKN — 10 digits).
+    example: null
+  company_name:
+    type: [string, "null"]
+    maxLength: 200
+    description: Registered company name for corporate customers.
+    example: null
+  gender:
+    type: [string, "null"]
+    enum:
+      - male
+      - female
+      - other
+      - unspecified
+      - null
+    description: Self-declared gender. Omit or send `null` to leave unspecified.
+    example: null
+  license_class:
+    type: [string, "null"]
+    maxLength: 16
+    description: Driver licence class / category (e.g. `B`, `B+CE`, `D`).
+    example: B
+  license_country:
+    type: [string, "null"]
+    minLength: 2
+    maxLength: 2
+    pattern: ^[A-Z]{2}$
+    description: ISO 3166-1 alpha-2 country code that issued the driver licence.
+    example: TR
+  source:
+    type: [string, "null"]
+    maxLength: 32
+    description: |
+      Acquisition / channel hint (e.g. `online`, `walk-in`, `b2b`,
+      `referral`). Free-form; tenants curate the vocabulary.
+    example: online
+  addresses:
+    type: array
+    description: |
+      Optional bulk-create of customer addresses on first
+      onboarding. Each entry is upserted under the resulting
+      customer row. See `CustomerAddressInput`.
+    items:
+      $ref: ./CustomerAddressInput.yaml
+  documents:
+    type: array
+    description: |
+      Optional bulk-create of customer KYC documents on first
+      onboarding. Binaries are uploaded to Cloudflare R2 out of
+      band; this array carries the resulting object keys plus
+      metadata. See `CustomerDocumentInput`.
+    items:
+      $ref: ./CustomerDocumentInput.yaml

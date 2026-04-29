@@ -206,6 +206,14 @@ components:
       $ref: ./components/schemas/Customer.yaml
     CustomerInput:
       $ref: ./components/schemas/CustomerInput.yaml
+    CustomerAddress:
+      $ref: ./components/schemas/CustomerAddress.yaml
+    CustomerAddressInput:
+      $ref: ./components/schemas/CustomerAddressInput.yaml
+    CustomerDocument:
+      $ref: ./components/schemas/CustomerDocument.yaml
+    CustomerDocumentInput:
+      $ref: ./components/schemas/CustomerDocumentInput.yaml
     Location:
       $ref: ./components/schemas/Location.yaml
     DropFee:

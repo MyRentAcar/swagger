@@ -1,0 +1,47 @@
+type: object
+description: |
+  Customer KYC document reference accepted as part of
+  `CustomerInput` on `POST /reservations`. The actual binary upload
+  happens out-of-band against Cloudflare R2 via a pre-signed URL
+  flow (see `docs/08-api-security.md`); this payload only carries
+  the resulting object key plus metadata. When embedded under a
+  parent `customer` block the `customer_id` is derived server-side
+  from the upserted customer row.
+required:
+  - type
+  - file_path
+properties:
+  type:
+    type: string
+    enum:
+      - identity
+      - driver_license
+      - passport
+      - other
+    example: driver_license
+  file_path:
+    type: string
+    maxLength: 512
+    description: |
+      Cloudflare R2 object key returned by the pre-signed upload
+      flow. The server validates the key is rooted under the
+      tenant's R2 prefix before persisting.
+    example: tenants/42/customers/uploads/license-front.jpg
+  file_name:
+    type: [string, "null"]
+    maxLength: 255
+    example: license-front.jpg
+  file_size:
+    type: [integer, "null"]
+    format: int64
+    minimum: 0
+    example: 184320
+  mime_type:
+    type: [string, "null"]
+    maxLength: 100
+    example: image/jpeg
+  expires_at:
+    type: [string, "null"]
+    format: date
+    description: Document validity end date; `null` if not applicable.
+    example: 2030-04-01

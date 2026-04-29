@@ -1,0 +1,67 @@
+type: object
+description: |
+  Customer KYC document (mirrors `customer_documents`,
+  `docs/03-database-schema.md`). Files are uploaded to Cloudflare R2
+  via a pre-signed URL flow (see `docs/08-api-security.md`) and the
+  resulting object key is stored in `file_path`. The public API
+  never returns the raw R2 credentials; consumers receive either
+  the CDN URL (when public) or a short-lived signed URL on
+  download. Document CRUD is a Backoffice-only concern (DB-direct
+  per ADR-005 / ADR-020); the schema is exposed publicly because
+  it is embeddable on the `Customer` aggregate via
+  `?include=documents` and it ships alongside `CustomerInput` on
+  `POST /reservations` for first-time customer onboarding.
+required:
+  - id
+  - type
+  - file_path
+properties:
+  id:
+    type: integer
+    format: int64
+    readOnly: true
+    example: 9901
+  customer_id:
+    type: integer
+    format: int64
+    readOnly: true
+    example: 4711
+  type:
+    type: string
+    enum:
+      - identity
+      - driver_license
+      - passport
+      - other
+    example: driver_license
+  file_path:
+    type: string
+    description: |
+      Cloudflare R2 object key (storage-internal) or the
+      tenant-scoped CDN URL when the document is publicly readable.
+      Clients SHOULD treat the value as opaque and resolve it via
+      the platform document download endpoint.
+    example: tenants/42/customers/4711/documents/9901/license-front.jpg
+  file_name:
+    type: [string, "null"]
+    maxLength: 255
+    description: Original filename as supplied by the uploader.
+    example: license-front.jpg
+  file_size:
+    type: [integer, "null"]
+    format: int64
+    minimum: 0
+    description: File size in bytes.
+    example: 184320
+  mime_type:
+    type: [string, "null"]
+    maxLength: 100
+    description: IANA media type detected on upload.
+    example: image/jpeg
+  expires_at:
+    type: [string, "null"]
+    format: date
+    description: |
+      Document validity end date (e.g. driver licence expiry).
+      `null` for documents that do not carry an expiry.
+    example: 2030-04-01

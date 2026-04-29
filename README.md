@@ -185,6 +185,7 @@ tracks which sprint's endpoints are reflected in `openapi/openapi.yaml`.
 | Sprint 1.5 reservations CRUD                 | +3        | Synced  |
 | Sprint 1.5 multi-currency display            | schema    | Synced  |
 | Sprint 2.1 branch concept                    | +1        | Synced  |
+| Sprint 2.2 customer KYC + addresses/documents| schemas   | Synced  |
 
 ### Sprint 1.5 architecture refactors
 
@@ -245,3 +246,46 @@ the Backoffice writes branches directly against the database.
 
 Counts after Sprint 2.1: operations 20→21, schemas 29→30,
 parameters 33→34, tags 10→11.
+
+### Sprint 2.2 — Customer KYC + addresses + documents
+
+Sprint 2.2 broadens the customer model with B2B / KYC fields and
+introduces two embeddable relations (addresses and KYC
+documents):
+
+- **`CustomerAddress` / `CustomerAddressInput` schemas** — postal
+  addresses with `type` (`home`, `work`, `billing`),
+  `address_line1/2`, `city`, `district`, ISO 3166-1 alpha-2
+  `country_code`, `postal_code` and an `is_default` flag (one
+  default per `(customer_id, type)`).
+- **`CustomerDocument` / `CustomerDocumentInput` schemas** — KYC
+  documents (`identity`, `driver_license`, `passport`, `other`)
+  whose binaries live in Cloudflare R2; only the object key plus
+  metadata cross the API surface, with optional `expires_at` for
+  documents that carry a validity end date.
+- **`Customer` schema extension** — new fields `type`
+  (`individual` / `corporate`), `tax_id`, `company_name`,
+  `gender`, `license_class`, `license_country`, `source`, plus
+  the embeddable `addresses` and `documents` arrays surfaced via
+  the opt-in `?include=addresses,documents` query.
+- **`CustomerInput` schema extension** — same KYC fields for the
+  reservation-time upsert path, plus optional `addresses[]` and
+  `documents[]` for first-onboarding bulk create. The `tckn`
+  pattern is tightened to `^[1-9]\d{10}$` (first digit non-zero);
+  the 10th/11th-digit checksum is enforced server-side, MerNIS /
+  NVI live verification is deferred to Faz 2.
+- **`ReservationCreateRequest.customer`** — now `oneOf
+  CustomerInput | { id }`. The `{ id }` branch lets B2B partners
+  link an existing tenant-scoped customer instead of re-supplying
+  the full payload.
+
+Customer / address / document CRUD is **not** in the public API
+— per ADR-005 / ADR-020 the Backoffice writes these tables
+directly. The schemas are exposed publicly only because they are
+embeddable on the `Customer` aggregate and ship alongside
+`CustomerInput` on `POST /reservations`.
+
+Counts after Sprint 2.2: operations 21 (unchanged), schemas
+30→34 (`CustomerAddress`, `CustomerAddressInput`,
+`CustomerDocument`, `CustomerDocumentInput`), parameters 34
+(unchanged), tags 11 (unchanged).

@@ -1,0 +1,56 @@
+type: object
+description: |
+  Customer address payload accepted as part of `CustomerInput` on
+  `POST /reservations` (bulk-create on customer onboarding). When
+  embedded under a parent `customer` block the `customer_id` is
+  derived server-side from the upserted customer row and MUST NOT
+  be supplied by the client.
+required:
+  - type
+  - address_line1
+  - city
+  - country_code
+properties:
+  type:
+    type: string
+    enum:
+      - home
+      - work
+      - billing
+    default: home
+    example: home
+  address_line1:
+    type: string
+    maxLength: 255
+    example: Yeşilköy Mah. Atatürk Cd. No:1
+  address_line2:
+    type: [string, "null"]
+    maxLength: 255
+    example: Daire 4
+  city:
+    type: string
+    maxLength: 100
+    example: İstanbul
+  district:
+    type: [string, "null"]
+    maxLength: 100
+    example: Bakırköy
+  country_code:
+    type: string
+    minLength: 2
+    maxLength: 2
+    pattern: ^[A-Z]{2}$
+    description: ISO 3166-1 alpha-2 country code.
+    example: TR
+  postal_code:
+    type: [string, "null"]
+    maxLength: 16
+    example: "34149"
+  is_default:
+    type: boolean
+    default: false
+    description: |
+      True to flag this address as the customer's default for the
+      given `type`. The server clears the flag on previously
+      defaulted rows of the same `(customer_id, type)` to enforce
+      the single-default invariant.
