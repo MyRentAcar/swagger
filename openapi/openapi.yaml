@@ -73,6 +73,8 @@ tags:
     description: B2B agency partner channel (Passport client_credentials).
   - name: Pricing
     description: Public pricing quote endpoint (layered rule + override + drop-fee engine).
+  - name: Branches
+    description: Tenant şubeleri (sube/branch). Public B2B-visible listing only — branch CRUD is Backoffice DB-direct.
 
 security:
   - hmacAuth: []
@@ -114,6 +116,9 @@ paths:
 
   /locations:
     $ref: ./paths/locations.yaml#/list
+
+  /branches:
+    $ref: ./paths/branches.yaml#/list
 
   /stop-sale/check:
     $ref: ./paths/stop-sale.yaml#/check
@@ -161,6 +166,8 @@ components:
       $ref: ./components/parameters/IdParam.yaml
     SlugParam:
       $ref: ./components/parameters/SlugParam.yaml
+    BranchIdQuery:
+      $ref: ./components/parameters/BranchIdQuery.yaml
 
   responses:
     BadRequest:
@@ -237,3 +244,5 @@ components:
       $ref: ./components/schemas/OAuthTokenResponse.yaml
     AgencyQuota:
       $ref: ./components/schemas/AgencyQuota.yaml
+    Branch:
+      $ref: ./components/schemas/Branch.yaml

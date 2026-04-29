@@ -63,6 +63,13 @@ properties:
     type: [string, "null"]
     maxLength: 5000
     description: Free-form operations notes (admin-only surface).
+  branch_id:
+    type: [integer, "null"]
+    format: int64
+    description: |
+      Tenant branch the unit is currently stationed at. `null` means
+      tenant-wide / unassigned (HQ pool). See `Branch` schema.
+    example: 12
   created_at:
     type: string
     format: date-time

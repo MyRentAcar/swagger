@@ -80,3 +80,10 @@ properties:
     type: boolean
     default: false
     description: KVKK marketing consent for the current tenant.
+  branch_id:
+    type: [integer, "null"]
+    format: int64
+    description: |
+      Optional tenant branch the customer is bound to. Omit (or send
+      `null`) for a tenant-wide (HQ) record. See `Branch` schema.
+    example: 12

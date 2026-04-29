@@ -114,6 +114,14 @@ properties:
   is_active:
     type: boolean
     default: true
+  branch_id:
+    type: [integer, "null"]
+    format: int64
+    description: |
+      Tenant branch the location belongs to. `null` means tenant-wide
+      (HQ); a value pins the location to a specific branch. See
+      `Branch` schema.
+    example: 12
   created_at:
     type: string
     format: date-time

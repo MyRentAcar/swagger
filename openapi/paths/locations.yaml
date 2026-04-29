@@ -41,6 +41,7 @@ list:
           type: integer
           format: int64
         description: Pickup location id; when set, response items include the matching `drop_fee`.
+      - $ref: ../components/parameters/BranchIdQuery.yaml
     responses:
       '200':
         description: Locations page.

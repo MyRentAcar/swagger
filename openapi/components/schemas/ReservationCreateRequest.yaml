@@ -37,6 +37,15 @@ properties:
     example: 11
   customer:
     $ref: ./CustomerInput.yaml
+  branch_id:
+    type: [integer, "null"]
+    format: int64
+    description: |
+      Optional tenant branch the reservation should be ascribed to.
+      When omitted the server derives it from the pickup location's
+      branch (or leaves it `null` for tenant-wide). See `Branch`
+      schema.
+    example: 12
   notes:
     type: [string, "null"]
     maxLength: 1000

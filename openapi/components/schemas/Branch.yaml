@@ -1,0 +1,50 @@
+type: object
+description: |
+  Tenant şubesi (branch / sube). Tenant-scoped operating unit (e.g. an
+  airport desk, a downtown office) that owns a slice of the fleet,
+  locations, and reservations. Public B2B partners receive only active
+  branches via `GET /branches`. Localized `name` and `address` fields
+  are emitted as a single string for the request locale (resolved from
+  `Accept-Language`, falling back to `tenant.locale_default`) — see
+  ADR-018. Branch CRUD is a Backoffice-only concern (DB-direct per
+  ADR-005 / ADR-020) and is not exposed by the public API.
+required:
+  - id
+  - code
+  - is_default
+  - is_active
+properties:
+  id:
+    type: integer
+    format: int64
+    example: 12
+  code:
+    type: string
+    maxLength: 32
+    description: Tenant-unique short code (kebab- or dash-friendly identifier).
+    example: IST-01
+  name:
+    type: string
+    description: Localized branch name for the current request locale.
+    example: İstanbul Atatürk Havalimanı
+  address:
+    type: [string, "null"]
+    description: Localized branch address for the current request locale.
+    example: Yeşilköy Mah. Atatürk Cd. No:1, Bakırköy/İstanbul
+  phone:
+    type: [string, "null"]
+    maxLength: 32
+    description: E.164 phone number where applicable.
+    example: "+902125550100"
+  email:
+    type: [string, "null"]
+    format: email
+    maxLength: 200
+  is_default:
+    type: boolean
+    description: True for the tenant's default (HQ) branch.
+    example: false
+  is_active:
+    type: boolean
+    default: true
+    example: true

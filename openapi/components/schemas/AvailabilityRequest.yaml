@@ -34,3 +34,11 @@ properties:
     format: int64
     description: Optional filter — restrict to a single vehicle class.
     example: 3
+  branch_id:
+    type: [integer, "null"]
+    format: int64
+    description: |
+      Optional filter — restrict the search to a specific tenant
+      branch. When omitted the search spans every branch the caller
+      is authorized to see (tenant-wide). See `Branch` schema.
+    example: 12

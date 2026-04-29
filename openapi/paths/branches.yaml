@@ -1,0 +1,40 @@
+list:
+  get:
+    operationId: branches.list
+    summary: List active tenant branches (public B2B listing)
+    description: |
+      Returns the active branches (`is_active = true`) of the current
+      tenant. Intended for B2B partners and public storefront flows
+      that need to surface a "pickup branch" selector before
+      availability search or reservation creation. Branch CRUD is a
+      Backoffice-only concern (DB-direct per ADR-005 / ADR-020); this
+      endpoint is read-only. Localized `name` / `address` follow
+      `Accept-Language` per ADR-018.
+    tags: [Branches]
+    security:
+      - hmacAuth: []
+    parameters:
+      - $ref: ../components/parameters/XTenantId.yaml
+      - $ref: ../components/parameters/XAppId.yaml
+      - $ref: ../components/parameters/XTimestamp.yaml
+      - $ref: ../components/parameters/XNonce.yaml
+      - $ref: ../components/parameters/XSignature.yaml
+      - $ref: ../components/parameters/XApiVersion.yaml
+      - $ref: ../components/parameters/AcceptLanguage.yaml
+    responses:
+      '200':
+        description: Active branches for the current tenant.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: ../components/schemas/Branch.yaml
+      '401':
+        $ref: ../components/responses/Unauthorized.yaml
+      '429':
+        $ref: ../components/responses/TooManyRequests.yaml

@@ -184,6 +184,7 @@ tracks which sprint's endpoints are reflected in `openapi/openapi.yaml`.
 | Sprint 1.5 stop-sale check                   | +1        | Synced  |
 | Sprint 1.5 reservations CRUD                 | +3        | Synced  |
 | Sprint 1.5 multi-currency display            | schema    | Synced  |
+| Sprint 2.1 branch concept                    | +1        | Synced  |
 
 ### Sprint 1.5 architecture refactors
 
@@ -215,3 +216,32 @@ The Sprint 1.5 multi-currency fields (`display_currency`,
 `display_total`, `display_rate`, `rate_source`, `rate_effective_at`)
 on `PricingQuote` are now part of this revision — they ship together
 with the live cross-rate engine and the new `TenantCurrency` model.
+
+### Sprint 2.1 — Branch konsepti
+
+Sprint 2.1 introduces the tenant **Branch** (sube) as a first-class
+operating unit:
+
+- **`Branch` schema** — public, B2B-visible representation with
+  `id`, `code`, localized `name` / `address`, `phone`, `email`,
+  `is_default`, `is_active`. Localized fields follow ADR-018
+  (single string for the request locale).
+- **`GET /branches`** — HMAC-authenticated B2B listing of the
+  tenant's active branches; intended for partner storefront flows
+  that need a "pickup branch" selector.
+- **`branch_id` (nullable)** has been added to `Customer`,
+  `CustomerInput`, `VehicleUnit`, `Location`, `Reservation` and
+  `ReservationCreateRequest`. `null` means tenant-wide (HQ); a
+  value pins ownership to a specific branch.
+- **`BranchIdQuery` parameter** — common `?branch_id=` filter
+  applied to `GET /locations` and `GET /reservations`. The POST
+  `/search/availability` endpoint accepts the same filter inside
+  `AvailabilityRequest.branch_id` (matching the existing
+  body-filter pattern of `vehicle_class_id`).
+- **`Branches` tag** added.
+
+Branch CRUD is **not** in the public API — per ADR-005 / ADR-020
+the Backoffice writes branches directly against the database.
+
+Counts after Sprint 2.1: operations 20→21, schemas 29→30,
+parameters 33→34, tags 10→11.

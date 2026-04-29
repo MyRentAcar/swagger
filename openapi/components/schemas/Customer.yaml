@@ -86,3 +86,11 @@ properties:
     format: date-time
     description: Timestamp the KVKK consent text was last accepted.
     example: 2026-04-28T10:00:00Z
+  branch_id:
+    type: [integer, "null"]
+    format: int64
+    description: |
+      Tenant branch the customer record is bound to. `null` means
+      tenant-wide (HQ); a value pins ownership to that branch. See
+      `Branch` schema.
+    example: 12

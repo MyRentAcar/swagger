@@ -1,0 +1,11 @@
+name: branch_id
+in: query
+required: false
+description: |
+  Filter results to a specific tenant branch. Omit to span every
+  branch the caller is authorized to see (tenant-wide). See `Branch`
+  schema and `GET /branches`.
+schema:
+  type: integer
+  format: int64
+  example: 12

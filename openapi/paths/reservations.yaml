@@ -31,6 +31,7 @@ collection:
         schema:
           type: string
           enum: [pending, confirmed, picked_up, returned, cancelled, no_show]
+      - $ref: ../components/parameters/BranchIdQuery.yaml
     responses:
       '200':
         description: Reservation page.

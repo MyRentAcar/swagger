@@ -173,6 +173,14 @@ properties:
     type: [string, "null"]
     format: date-time
     readOnly: true
+  branch_id:
+    type: [integer, "null"]
+    format: int64
+    description: |
+      Tenant branch the reservation is owned by (typically inherited
+      from the pickup location's branch). `null` means tenant-wide
+      (HQ). See `Branch` schema.
+    example: 12
   created_at:
     type: string
     format: date-time
